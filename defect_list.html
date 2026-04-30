@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Defects | Defect Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
+      <nav class="nav">
+        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <h1>Defects</h1>
+        <a class="button button-primary create-defect-cta" href="defect_create.html">Create Defect</a>
+      </header>
+      <section class="content">
+        <section class="card card-pad">
+          <div class="filters">
+            <div><label>Search</label><input type="text" placeholder="ID, title, assignee"></div>
+            <div><label>Project</label><select><option>All Projects</option><option>Claims Portal</option><option>Mobile QA</option><option>Billing Core</option></select></div>
+            <div><label>Environment</label><select><option>All Environments</option><option>DEV</option><option>SIT</option><option>UAT</option><option>Pre-Prod</option><option>PROD</option></select></div>
+            <div><label>Status</label><select><option>All Statuses</option><option>New</option><option>Assigned</option><option>In Progress</option><option>Fixed</option><option>Retest</option><option>Closed</option><option>Reopened</option></select></div>
+            <div><label>Severity</label><select><option>All Severities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+            <div><label>Priority</label><select><option>All Priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+            <div><label>Assigned To</label><select><option>Anyone</option><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option></select></div>
+            <div><label>Release Version</label><select><option>All Releases</option><option>2026.04</option><option>2026.03</option><option>2026.02</option></select></div>
+          </div>
+          <div class="filter-actions">
+            <button class="button-primary">Apply Filters</button>
+            <button>Reset</button>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:18px;">
+          <div class="card-header">
+            <h2>Defect Records</h2>
+            <span class="muted">Sample data</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Defect ID</th>
+                  <th>Title</th>
+                  <th>Project</th>
+                  <th>Environment</th>
+                  <th>Severity</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Release Version</th>
+                  <th>Release Deployment Date</th>
+                  <th>Fix Date</th>
+                  <th>Closure Date</th>
+                  <th>Created Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>DF-1042</td>
+                  <td>Invoice total mismatch after tax recalculation</td>
+                  <td>Billing Core</td>
+                  <td>UAT</td>
+                  <td><span class="badge badge-high">High</span></td>
+                  <td>P1</td>
+                  <td><span class="badge badge-progress">In Progress</span></td>
+                  <td>Aisha Khan</td>
+                  <td>2026.04</td>
+                  <td>2026-05-10</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>2026-04-21</td>
+                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
+                </tr>
+                <tr>
+                  <td>DF-1037</td>
+                  <td>Attachment preview fails for PNG screenshots</td>
+                  <td>Claims Portal</td>
+                  <td>SIT</td>
+                  <td><span class="badge badge-medium">Medium</span></td>
+                  <td>P2</td>
+                  <td><span class="badge badge-assigned">Assigned</span></td>
+                  <td>Omar Salem</td>
+                  <td>2026.04</td>
+                  <td>2026-05-10</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>2026-04-18</td>
+                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
+                </tr>
+                <tr>
+                  <td>DF-1029</td>
+                  <td>UAT users are logged out before timeout policy</td>
+                  <td>Claims Portal</td>
+                  <td>UAT</td>
+                  <td><span class="badge badge-critical">Critical</span></td>
+                  <td>P1</td>
+                  <td><span class="badge badge-reopened">Reopened</span></td>
+                  <td>Leena Faris</td>
+                  <td>2026.03</td>
+                  <td>2026-04-12</td>
+                  <td>2026-04-17</td>
+                  <td>-</td>
+                  <td>2026-04-10</td>
+                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
+                </tr>
+                <tr>
+                  <td>DF-1018</td>
+                  <td>Project filter does not persist after refresh</td>
+                  <td>Mobile QA</td>
+                  <td>SIT</td>
+                  <td><span class="badge badge-low">Low</span></td>
+                  <td>P4</td>
+                  <td><span class="badge badge-closed">Closed</span></td>
+                  <td>Fahad Noor</td>
+                  <td>2026.02</td>
+                  <td>2026-03-08</td>
+                  <td>2026-03-12</td>
+                  <td>2026-03-14</td>
+                  <td>2026-03-05</td>
+                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Environments | Defect Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
+      <nav class="nav">
+        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <h1>Environments</h1>
+        <span class="topbar-meta">DEV, SIT, UAT, Pre-Prod, PROD</span>
+      </header>
+      <section class="content">
+        <div class="grid grid-2">
+          <form class="card card-pad" data-demo-form>
+            <h2 class="section-title">Environment Form</h2>
+            <label for="envName">Environment Name</label>
+            <input id="envName" type="text" value="UAT">
+            <label for="envDescription">Description</label>
+            <textarea id="envDescription">User acceptance testing environment for business validation.</textarea>
+            <label for="envStatus">Active/Inactive</label>
+            <select id="envStatus"><option>Active</option><option>Inactive</option></select>
+            <div class="form-actions">
+              <button class="button-primary" type="submit">Save Environment</button>
+              <button type="button">Clear</button>
+              <span class="muted" data-form-message></span>
+            </div>
+          </form>
+          <section class="card">
+            <div class="card-header"><h2>Environment List</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Environment Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td>DEV</td><td>Developer integration and early validation.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>SIT</td><td>System integration testing environment.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>UAT</td><td>User acceptance testing with business users.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>Pre-Prod</td><td>Production-like release validation.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>PROD</td><td>Production defect tracking.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

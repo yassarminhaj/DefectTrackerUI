@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Defect | Defect Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
+      <nav class="nav">
+        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <h1>Create Defect</h1>
+        <span class="topbar-meta">Required fields are marked with *</span>
+      </header>
+      <section class="content">
+        <form class="card card-pad" data-demo-form>
+          <div class="form-grid">
+            <div class="span-2"><label for="title">Title *</label><input id="title" type="text" value="Invoice total mismatch after tax recalculation"></div>
+            <div class="span-2"><label for="description">Description *</label><textarea id="description">The invoice total changes after refreshing the payment review screen in UAT.</textarea></div>
+            <div><label for="project">Project *</label><select id="project"><option>Billing Core</option><option>Claims Portal</option><option>Mobile QA</option></select></div>
+            <div><label for="module">Module / Component</label><input id="module" type="text" value="Invoice Review"></div>
+            <div><label for="environment">Environment Identified *</label><select id="environment"><option>UAT</option><option>DEV</option><option>SIT</option><option>Pre-Prod</option><option>PROD</option></select></div>
+            <div><label for="severity">Severity *</label><select id="severity"><option>Critical</option><option selected>High</option><option>Medium</option><option>Low</option></select></div>
+            <div><label for="priority">Priority *</label><select id="priority"><option selected>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+            <div><label for="status">Status *</label><select id="status"><option>New</option><option selected>Assigned</option><option>In Progress</option><option>Fixed</option><option>Retest</option></select></div>
+            <div><label for="assigned">Assigned To *</label><select id="assigned"><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option><option>Fahad Noor</option></select></div>
+            <div><label for="release">Release Version</label><input id="release" type="text" value="2026.04"></div>
+            <div><label for="deployment">Release Deployment Date</label><input id="deployment" type="date" value="2026-05-10"></div>
+            <div class="span-2">
+              <label for="stepsEditor">Steps to Replicate</label>
+              <div class="tiptap-shell" data-steps-editor-shell>
+                <div id="stepsEditor" class="tiptap-editor" data-steps-editor></div>
+                <input id="stepsHtml" type="hidden" name="steps_html" data-steps-html>
+                <p class="editor-help">Type the reproduction steps here. Paste screenshots directly into this editor to place them inline with the text.</p>
+              </div>
+            </div>
+            <div><label for="expected">Expected Result</label><textarea id="expected">Invoice total remains consistent after refresh.</textarea></div>
+            <div><label for="actual">Actual Result</label><textarea id="actual">Invoice total changes by SAR 12.50 after refresh.</textarea></div>
+            <div class="span-2">
+              <label for="attachments">Attachments</label>
+              <div class="upload-box">
+                <div>
+                  <strong>Drag and drop files here</strong>
+                  <span>Accepted files: png, jpg, jpeg, pdf, doc, docx, txt, log, json</span><br>
+                  <span>Max 10 files, 5 MB each</span>
+                  <input id="attachments" data-file-input="selectedFiles" type="file" multiple>
+                </div>
+              </div>
+              <ul id="selectedFiles" class="file-list">
+                <li>invoice-before-refresh.png - 1.20 MB</li>
+                <li>uat-console.log - 0.42 MB</li>
+              </ul>
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top:18px;">
+            <button class="button-primary" type="submit">Save Defect</button>
+            <a class="button" href="defect_list.html">Cancel</a>
+            <span class="muted" data-form-message></span>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+  <script type="module">
+    import { Editor } from "https://esm.sh/@tiptap/core";
+    import StarterKit from "https://esm.sh/@tiptap/starter-kit";
+    import Image from "https://esm.sh/@tiptap/extension-image";
+    import { Placeholder } from "https://esm.sh/@tiptap/extensions";
+
+    const editorElement = document.querySelector("[data-steps-editor]");
+    const htmlOutput = document.querySelector("[data-steps-html]");
+    if (editorElement && htmlOutput) {
+      const ResizableImage = Image.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            width: {
+              default: null,
+              parseHTML: (element) => element.getAttribute("width"),
+              renderHTML: (attributes) => {
+                if (!attributes.width) return {};
+                return {
+                  width: attributes.width,
+                  style: `width: ${attributes.width}px; max-width: 100%;`,
+                };
+              },
+            },
+          };
+        },
+
+        addNodeView() {
+          return ({ editor, node, getPos }) => {
+            const wrapper = document.createElement("div");
+            const image = document.createElement("img");
+            const handle = document.createElement("span");
+
+            wrapper.className = "resizable-image-node";
+            wrapper.contentEditable = "false";
+            image.src = node.attrs.src;
+            image.alt = node.attrs.alt || "";
+            image.title = node.attrs.title || "";
+            image.draggable = false;
+            handle.className = "image-resize-handle";
+            handle.setAttribute("aria-hidden", "true");
+
+            if (node.attrs.width) {
+              image.style.width = `${node.attrs.width}px`;
+            }
+
+            wrapper.appendChild(image);
+            wrapper.appendChild(handle);
+
+            function setSelected(isSelected) {
+              wrapper.classList.toggle("is-selected", isSelected);
+            }
+
+            image.addEventListener("click", () => {
+              document.querySelectorAll(".resizable-image-node.is-selected").forEach((item) => {
+                item.classList.remove("is-selected");
+              });
+              setSelected(true);
+            });
+
+            handle.addEventListener("mousedown", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+
+              const startX = event.clientX;
+              const startWidth = image.getBoundingClientRect().width;
+              const editorWidth = editorElement.getBoundingClientRect().width - 32;
+
+              function onMove(moveEvent) {
+                const nextWidth = Math.max(120, Math.min(editorWidth, Math.round(startWidth + moveEvent.clientX - startX)));
+                image.style.width = `${nextWidth}px`;
+              }
+
+              function onUp() {
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+                const nextWidth = Math.round(image.getBoundingClientRect().width);
+                const position = getPos();
+
+                if (typeof position === "number") {
+                  editor.view.dispatch(
+                    editor.view.state.tr.setNodeMarkup(position, undefined, {
+                      ...node.attrs,
+                      width: String(nextWidth),
+                    })
+                  );
+                  htmlOutput.value = editor.getHTML();
+                }
+              }
+
+              document.addEventListener("mousemove", onMove);
+              document.addEventListener("mouseup", onUp);
+            });
+
+            return {
+              dom: wrapper,
+              update(updatedNode) {
+                if (updatedNode.type.name !== node.type.name) {
+                  return false;
+                }
+                node = updatedNode;
+                image.src = updatedNode.attrs.src;
+                image.alt = updatedNode.attrs.alt || "";
+                image.title = updatedNode.attrs.title || "";
+                image.style.width = updatedNode.attrs.width ? `${updatedNode.attrs.width}px` : "";
+                return true;
+              },
+              selectNode() {
+                setSelected(true);
+              },
+              deselectNode() {
+                setSelected(false);
+              },
+            };
+          };
+        },
+      });
+
+      const initialContent = `
+        <p>1. Open invoice review in UAT</p>
+        <p>2. Recalculate tax</p>
+        <p>3. Refresh the payment review screen</p>
+      `;
+
+      const editor = new Editor({
+        element: editorElement,
+        extensions: [
+          StarterKit,
+          ResizableImage.configure({
+            inline: false,
+            allowBase64: true,
+          }),
+          Placeholder.configure({
+            placeholder: "Enter steps to replicate...",
+          }),
+        ],
+        content: initialContent,
+        editorProps: {
+          handlePaste(view, event) {
+            const items = event.clipboardData && event.clipboardData.items
+              ? Array.from(event.clipboardData.items)
+              : [];
+            const imageItems = items.filter((item) => item.type.indexOf("image/") === 0);
+
+            if (!imageItems.length) {
+              return false;
+            }
+
+            event.preventDefault();
+
+            imageItems.forEach((item) => {
+              const file = item.getAsFile();
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = () => {
+                const temporaryImage = new window.Image();
+                function insertImage(width) {
+                  const attrs = {
+                    src: reader.result,
+                    alt: "Pasted reproduction screenshot",
+                  };
+
+                  if (width) {
+                    attrs.width = String(width);
+                  }
+
+                  editor
+                    .chain()
+                    .focus()
+                    .setImage(attrs)
+                    .createParagraphNear()
+                    .run();
+                }
+
+                temporaryImage.onload = () => {
+                  const editorWidth = editorElement.getBoundingClientRect().width - 32;
+                  const initialWidth = Math.min(temporaryImage.naturalWidth || editorWidth, editorWidth);
+                  insertImage(Math.max(120, Math.round(initialWidth)));
+                };
+                temporaryImage.onerror = () => insertImage();
+                temporaryImage.src = reader.result;
+              };
+              reader.readAsDataURL(file);
+            });
+
+            return true;
+          },
+        },
+        onCreate({ editor }) {
+          htmlOutput.value = editor.getHTML();
+        },
+        onUpdate({ editor }) {
+          htmlOutput.value = editor.getHTML();
+        },
+      });
+
+      window.defectStepsEditor = editor;
+
+      const form = editorElement.closest("form");
+      if (form) {
+        form.addEventListener("submit", () => {
+          htmlOutput.value = editor.getHTML();
+        }, true);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects | Defect Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
+      <nav class="nav">
+        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <h1>Projects</h1>
+        <span class="topbar-meta">Manage QA project scope</span>
+      </header>
+      <section class="content">
+        <section class="card management-card">
+          <div class="card-header management-header">
+            <div>
+              <h2>Project List</h2>
+              <p class="management-subtitle">Add and maintain project records inline.</p>
+            </div>
+            <button class="add-project-button" type="button" data-add-row-trigger aria-label="Add project"><span>+</span> Add Project</button>
+          </div>
+          <div class="table-wrap">
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>Project Name</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody data-project-table-body>
+                <tr class="inline-add-row" data-add-row hidden>
+                  <td><input data-project-name type="text" placeholder="Project name"></td>
+                  <td><input data-project-description type="text" placeholder="Short project description"></td>
+                  <td>
+                    <select data-project-status>
+                      <option>Active</option>
+                      <option>Inactive</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <button class="button-primary" type="button" data-save-project>Save</button>
+                      <button type="button" data-cancel-project>Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr><td>Claims Portal</td><td>Customer claim intake and processing workflow.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                <tr><td>Billing Core</td><td>Invoice, tax, and payment calculation services.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                <tr><td>Mobile QA</td><td>Mobile application regression and release testing.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                <tr><td>Legacy CRM</td><td>Legacy support and controlled maintenance.</td><td><span class="badge badge-inactive">Inactive</span></td><td><button>Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>
