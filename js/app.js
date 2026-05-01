@@ -10,7 +10,110 @@
     navTarget = "defect_list.html";
   }
 
+  var appShell = document.querySelector(".app-shell");
+  var sidebar = document.querySelector(".sidebar");
+  var sidebarToggle = document.querySelector("[data-sidebar-toggle]");
+  var sidebarToggleIcon = document.querySelector("[data-sidebar-toggle-icon]");
+  var sidebarStorageKey = "defectTrackerSidebarCollapsed";
+  var sidebarModeStorageKey = "defectTrackerSidebarMode";
+  var sidebarRestoreTab = null;
+
+  function getSidebarLabel(link) {
+    var clone = link.cloneNode(true);
+    var icon = clone.querySelector(".nav-icon");
+    if (icon) icon.remove();
+    return clone.textContent.trim();
+  }
+
+  function refreshAfterSidebarChange() {
+    window.dispatchEvent(new Event("resize"));
+    window.setTimeout(function () {
+      window.dispatchEvent(new Event("resize"));
+    }, 220);
+  }
+
+  function setSidebarMode(mode) {
+    if (!appShell) return;
+    var isCollapsed = mode === "collapsed";
+    var isHidden = mode === "hidden";
+    appShell.classList.toggle("sidebar-collapsed", isCollapsed);
+    appShell.classList.toggle("sidebar-hidden", isHidden);
+    if (sidebarToggle) {
+      sidebarToggle.setAttribute("aria-expanded", String(!isCollapsed));
+      sidebarToggle.setAttribute("aria-label", isCollapsed ? "Expand sidebar" : "Collapse sidebar");
+      sidebarToggle.title = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
+    }
+    if (sidebarToggleIcon) {
+      sidebarToggleIcon.innerHTML = isCollapsed ? "&rsaquo;" : "&lsaquo;";
+    }
+    if (sidebarRestoreTab) {
+      sidebarRestoreTab.classList.toggle("is-visible", isHidden);
+      sidebarRestoreTab.hidden = !isHidden;
+    }
+  }
+
+  function saveSidebarMode(mode) {
+    try {
+      window.localStorage.setItem(sidebarModeStorageKey, mode);
+      window.localStorage.setItem(sidebarStorageKey, String(mode === "collapsed"));
+    } catch (error) {
+      // Static prototype: ignore storage errors in restricted browser modes.
+    }
+  }
+
+  if (appShell && sidebar) {
+    var sidebarHideAction = document.createElement("button");
+    sidebarHideAction.type = "button";
+    sidebarHideAction.className = "sidebar-hide-action";
+    sidebarHideAction.textContent = "Hide Menu";
+    sidebarHideAction.title = "Hide menu";
+    sidebarHideAction.setAttribute("data-sidebar-hide", "");
+    sidebar.appendChild(sidebarHideAction);
+
+    sidebarRestoreTab = document.createElement("button");
+    sidebarRestoreTab.type = "button";
+    sidebarRestoreTab.className = "sidebar-restore-tab";
+    sidebarRestoreTab.textContent = "Menu";
+    sidebarRestoreTab.hidden = true;
+    sidebarRestoreTab.setAttribute("data-sidebar-restore", "");
+    document.body.appendChild(sidebarRestoreTab);
+
+    var savedSidebarMode = "expanded";
+    try {
+      savedSidebarMode = window.localStorage.getItem(sidebarModeStorageKey) || (window.localStorage.getItem(sidebarStorageKey) === "true" ? "collapsed" : "expanded");
+    } catch (error) {
+      savedSidebarMode = "expanded";
+    }
+    if (["expanded", "collapsed", "hidden"].indexOf(savedSidebarMode) === -1) {
+      savedSidebarMode = "expanded";
+    }
+    setSidebarMode(savedSidebarMode);
+
+    sidebarHideAction.addEventListener("click", function () {
+      setSidebarMode("hidden");
+      saveSidebarMode("hidden");
+      refreshAfterSidebarChange();
+    });
+
+    sidebarRestoreTab.addEventListener("click", function () {
+      setSidebarMode("expanded");
+      saveSidebarMode("expanded");
+      refreshAfterSidebarChange();
+    });
+
+    if (sidebarToggle) sidebarToggle.addEventListener("click", function () {
+      var nextCollapsed = !appShell.classList.contains("sidebar-collapsed");
+      var nextMode = nextCollapsed ? "collapsed" : "expanded";
+      setSidebarMode(nextMode);
+      saveSidebarMode(nextMode);
+      refreshAfterSidebarChange();
+    });
+  }
+
   document.querySelectorAll("[data-nav]").forEach(function (link) {
+    if (!link.getAttribute("title")) {
+      link.setAttribute("title", getSidebarLabel(link));
+    }
     var href = link.getAttribute("href");
     if (href === navTarget) {
       link.classList.add("active");
