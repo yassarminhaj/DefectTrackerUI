@@ -419,7 +419,7 @@
   var reportChartGrid = document.querySelector("[data-report-chart-grid]");
   var reportChartModal = document.querySelector("[data-report-chart-modal]");
 
-  if (reportTableBody && reportChartGrid && reportChartModal && window.Chart) {
+  if (reportTableBody && reportChartGrid && reportChartModal) {
     var reportToday = new Date("2026-04-30T00:00:00");
     var reportRecords = [
       { id: "DF-1042", title: "Invoice total mismatch after tax recalculation", project: "Billing Core", environment: "UAT", severity: "High", priority: "P1", status: "In Progress", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-21" },
@@ -441,15 +441,28 @@
     ];
     var reportFilters = Array.prototype.slice.call(document.querySelectorAll("[data-report-filter]"));
     var reportResultCount = document.querySelector("[data-report-result-count]");
+    var reportFilterPanel = document.querySelector(".dashboard-filter-panel");
+    var reportFilterBody = document.querySelector("[data-dashboard-filter-body]");
+    var toggleReportFiltersButton = document.querySelector("[data-toggle-dashboard-filters]");
     var resetReportButton = document.querySelector("[data-dashboard-reset]");
     var exportReportButton = document.querySelector("[data-dashboard-export]");
     var openReportChartModalButton = document.querySelector("[data-open-report-chart-modal]");
+    var restoreReportChartSelect = document.querySelector("[data-restore-report-chart]");
     var closeReportChartModalButtons = Array.prototype.slice.call(reportChartModal.querySelectorAll("[data-close-report-chart-modal]"));
     var saveReportChartButton = reportChartModal.querySelector("[data-save-report-chart]");
     var reportChartTitleInput = reportChartModal.querySelector("[data-report-chart-title]");
     var reportChartTypeInput = reportChartModal.querySelector("[data-report-chart-type]");
     var reportChartGroupInput = reportChartModal.querySelector("[data-report-chart-group]");
     var reportChartInstances = {};
+    var draggedReportChart = null;
+    var reportChartDefinitions = {
+      status: { title: "Defects by Status", type: "doughnut", groupBy: "status", span: 4, tall: false },
+      severity: { title: "Defects by Severity", type: "bar", groupBy: "severity", span: 4, tall: false },
+      environment: { title: "Defects by Environment", type: "doughnut", groupBy: "environment", span: 4, tall: false },
+      releaseVersion: { title: "Defects by Release", type: "horizontal", groupBy: "releaseVersion", span: 4, tall: false },
+      trend: { title: "Created Defect Trend", type: "line", groupBy: "createdMonth", span: 8, tall: false },
+      aging: { title: "Open Aging Buckets", type: "bar", groupBy: "aging", span: 4, tall: false }
+    };
     var reportSortKey = "createdDate";
     var reportSortAsc = false;
     var labelMap = {
@@ -484,9 +497,11 @@
     };
     var neutralPalette = ["#23402a", "#2a4d32", "#7ea687", "#b5ccbb", "#5c1c1c", "#b83737", "#c65f5f", "#dc9b9b", "#262828", "#303635"];
 
-    Chart.defaults.font.family = '"Book Antiqua", Palatino, serif';
-    Chart.defaults.color = "#303635";
-    Chart.defaults.borderColor = "rgba(48, 54, 53, .18)";
+    if (window.Chart) {
+      Chart.defaults.font.family = '"Book Antiqua", Palatino, serif';
+      Chart.defaults.color = "#303635";
+      Chart.defaults.borderColor = "rgba(48, 54, 53, .18)";
+    }
 
     reportRecords.forEach(function (record) {
       var created = new Date(record.createdDate + "T00:00:00");
@@ -613,10 +628,122 @@
       return type === "horizontal" ? "bar" : type;
     }
 
+    function getReportChartConfig(card) {
+      var id = card.getAttribute("data-chart-id");
+      if (reportChartDefinitions[id]) {
+        return reportChartDefinitions[id];
+      }
+      return JSON.parse(card.getAttribute("data-chart-config") || "{}");
+    }
+
+    function createReportChartCard(id, definition) {
+      var card = document.createElement("article");
+      card.className = "report-chart-card";
+      if (definition.span >= 8) card.classList.add("wide-chart");
+      card.setAttribute("data-chart-id", id);
+      card.innerHTML = '<div class="chart-title-row"><div><h3></h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div>';
+      card.querySelector("h3").textContent = definition.title;
+      return card;
+    }
+
+    function updateRestoreChartOptions() {
+      if (!restoreReportChartSelect) return;
+      var activeIds = Array.prototype.slice.call(reportChartGrid.querySelectorAll(".report-chart-card")).map(function (card) {
+        return card.getAttribute("data-chart-id");
+      });
+      var removedIds = Object.keys(reportChartDefinitions).filter(function (id) {
+        return activeIds.indexOf(id) === -1;
+      });
+      restoreReportChartSelect.innerHTML = '<option value="">Restore removed chart</option>';
+      removedIds.forEach(function (id) {
+        var option = document.createElement("option");
+        option.value = id;
+        option.textContent = reportChartDefinitions[id].title;
+        restoreReportChartSelect.appendChild(option);
+      });
+      restoreReportChartSelect.hidden = removedIds.length === 0;
+    }
+
+    function restoreReportChart(id) {
+      var definition = reportChartDefinitions[id];
+      if (!definition || reportChartGrid.querySelector('[data-chart-id="' + id + '"]')) return;
+      var card = createReportChartCard(id, definition);
+      reportChartGrid.appendChild(card);
+      renderReportChart(card, definition, getFilteredReportRecords());
+      updateRestoreChartOptions();
+    }
+
+    function prepareReportChartCard(card) {
+      var titleRow = card.querySelector(".chart-title-row");
+      var actions = card.querySelector(".chart-actions");
+      var resizeHandle = card.querySelector("[data-resize-report-chart]");
+
+      if (!titleRow) return;
+
+      if (!actions) {
+        actions = document.createElement("div");
+        actions.className = "chart-actions";
+        titleRow.appendChild(actions);
+      }
+
+      if (!card.querySelector("[data-chart-drag-handle]")) {
+        var dragHandle = document.createElement("button");
+        dragHandle.type = "button";
+        dragHandle.className = "chart-drag-handle";
+        dragHandle.setAttribute("data-chart-drag-handle", "");
+        dragHandle.setAttribute("aria-label", "Move chart");
+        dragHandle.title = "Move chart";
+        dragHandle.textContent = "::";
+        actions.insertBefore(dragHandle, actions.firstChild);
+      }
+
+      if (!card.querySelector("[data-remove-report-chart]")) {
+        var removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "chart-remove-button";
+        removeButton.setAttribute("data-remove-report-chart", "");
+        removeButton.setAttribute("aria-label", "Remove chart");
+        removeButton.title = "Remove chart";
+        removeButton.textContent = "x";
+        actions.appendChild(removeButton);
+      } else {
+        var existingRemove = card.querySelector("[data-remove-report-chart]");
+        existingRemove.classList.add("chart-remove-button");
+        existingRemove.setAttribute("aria-label", "Remove chart");
+        existingRemove.title = "Remove chart";
+      }
+
+      if (!resizeHandle) {
+        resizeHandle = document.createElement("button");
+        resizeHandle.type = "button";
+        resizeHandle.className = "chart-resize-handle";
+        resizeHandle.setAttribute("data-resize-report-chart", "");
+        resizeHandle.setAttribute("aria-label", "Resize chart");
+        resizeHandle.title = "Resize chart";
+        card.appendChild(resizeHandle);
+      }
+
+      card.draggable = false;
+    }
+
+    function resizeReportChartInstance(card) {
+      var chartId = card.getAttribute("data-chart-instance-id");
+      if (window.Chart && chartId && reportChartInstances[chartId]) {
+        var canvasWrap = card.querySelector(".canvas-wrap");
+        if (canvasWrap) {
+          reportChartInstances[chartId].resize(canvasWrap.clientWidth, canvasWrap.clientHeight);
+        } else {
+          reportChartInstances[chartId].resize();
+        }
+      }
+    }
+
     function renderReportChart(card, config, rows) {
+      prepareReportChartCard(card);
       var canvas = card.querySelector("canvas");
       var meta = card.querySelector("[data-chart-meta]");
       var chartId = card.getAttribute("data-chart-instance-id") || card.getAttribute("data-chart-id") || ("chart-" + Date.now());
+      var existingFallback = card.querySelector("[data-chart-fallback]");
       var dataRows = config.groupBy === "aging" ? countAging(rows) : countBy(rows, config.groupBy);
       var labels = dataRows.map(function (row) { return row.label; });
       var values = dataRows.map(function (row) { return row.value; });
@@ -633,6 +760,22 @@
 
       card.setAttribute("data-chart-instance-id", chartId);
       if (meta) meta.textContent = chartMetaText(rows);
+
+      if (existingFallback) {
+        existingFallback.remove();
+      }
+
+      if (!window.Chart) {
+        if (canvas) canvas.hidden = true;
+        var fallback = document.createElement("div");
+        fallback.className = "chart-empty";
+        fallback.setAttribute("data-chart-fallback", "");
+        fallback.textContent = "Chart preview is waiting for Chart.js to load.";
+        card.appendChild(fallback);
+        return;
+      }
+
+      if (canvas) canvas.hidden = false;
 
       if (reportChartInstances[chartId]) {
         reportChartInstances[chartId].destroy();
@@ -659,16 +802,9 @@
 
     function renderAllReportCharts(rows) {
       reportChartGrid.querySelectorAll(".report-chart-card").forEach(function (card) {
-        var id = card.getAttribute("data-chart-id");
-        var config = id === "trend" ? { type: "line", groupBy: "createdMonth" } :
-          id === "aging" ? { type: "bar", groupBy: "aging" } :
-          id === "releaseVersion" ? { type: "horizontal", groupBy: "releaseVersion" } :
-          id === "environment" ? { type: "doughnut", groupBy: "environment" } :
-          id === "severity" ? { type: "bar", groupBy: "severity" } :
-          id === "status" ? { type: "doughnut", groupBy: "status" } :
-          JSON.parse(card.getAttribute("data-chart-config") || "{}");
-        renderReportChart(card, config, rows);
+        renderReportChart(card, getReportChartConfig(card), rows);
       });
+      updateRestoreChartOptions();
     }
 
     function getReportBadgeClass(value, field) {
@@ -761,6 +897,15 @@
       renderReportTable(rows);
     }
 
+    function toggleReportFilters() {
+      if (!reportFilterPanel || !reportFilterBody || !toggleReportFiltersButton) return;
+      var isCollapsed = reportFilterPanel.classList.toggle("is-collapsed");
+      var toggleLabel = toggleReportFiltersButton.querySelector("[data-filter-toggle-label]");
+      reportFilterBody.hidden = isCollapsed;
+      if (toggleLabel) toggleLabel.textContent = isCollapsed ? "Expand" : "Collapse";
+      toggleReportFiltersButton.setAttribute("aria-expanded", String(!isCollapsed));
+    }
+
     function resetReportFilters() {
       reportFilters.forEach(function (control) {
         control.value = "";
@@ -808,7 +953,7 @@
       card.className = "report-chart-card";
       card.setAttribute("data-chart-id", chartId);
       card.setAttribute("data-chart-config", JSON.stringify({ type: reportChartTypeInput.value, groupBy: groupBy }));
-      card.innerHTML = '<div class="chart-title-row"><div><h3></h3><p class="chart-meta" data-chart-meta>All defects</p></div><div class="chart-actions"><button type="button" data-remove-report-chart>Remove</button></div></div><div class="canvas-wrap"><canvas></canvas></div>';
+      card.innerHTML = '<div class="chart-title-row"><div><h3></h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div>';
       card.querySelector("h3").textContent = title;
       reportChartGrid.appendChild(card);
       renderReportChart(card, JSON.parse(card.getAttribute("data-chart-config")), getFilteredReportRecords());
@@ -836,9 +981,17 @@
       });
     });
 
+    if (toggleReportFiltersButton) toggleReportFiltersButton.addEventListener("click", toggleReportFilters);
     if (resetReportButton) resetReportButton.addEventListener("click", resetReportFilters);
     if (exportReportButton) exportReportButton.addEventListener("click", exportReportCsv);
     if (openReportChartModalButton) openReportChartModalButton.addEventListener("click", openReportChartModal);
+    if (restoreReportChartSelect) {
+      restoreReportChartSelect.addEventListener("change", function () {
+        if (!restoreReportChartSelect.value) return;
+        restoreReportChart(restoreReportChartSelect.value);
+        restoreReportChartSelect.value = "";
+      });
+    }
     if (saveReportChartButton) saveReportChartButton.addEventListener("click", addReportChart);
     closeReportChartModalButtons.forEach(function (button) {
       button.addEventListener("click", closeReportChartModal);
@@ -856,6 +1009,182 @@
         delete reportChartInstances[chartId];
       }
       card.remove();
+      updateRestoreChartOptions();
+    });
+    reportChartGrid.addEventListener("dragstart", function (event) {
+      var handle = event.target.closest("[data-chart-drag-handle]");
+      var card = event.target.closest(".report-chart-card");
+      if (!handle || !card) {
+        event.preventDefault();
+        return;
+      }
+      draggedReportChart = card;
+      card.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", card.getAttribute("data-chart-id") || "");
+    });
+    reportChartGrid.addEventListener("dragover", function (event) {
+      var targetCard = event.target.closest(".report-chart-card");
+      if (!draggedReportChart || !targetCard || targetCard === draggedReportChart) return;
+      event.preventDefault();
+      targetCard.classList.add("is-drop-target");
+      event.dataTransfer.dropEffect = "move";
+    });
+    reportChartGrid.addEventListener("dragleave", function (event) {
+      var targetCard = event.target.closest(".report-chart-card");
+      if (targetCard) targetCard.classList.remove("is-drop-target");
+    });
+    reportChartGrid.addEventListener("drop", function (event) {
+      var targetCard = event.target.closest(".report-chart-card");
+      if (!draggedReportChart || !targetCard || targetCard === draggedReportChart) return;
+      event.preventDefault();
+      var targetBox = targetCard.getBoundingClientRect();
+      var placeAfter = event.clientX > targetBox.left + targetBox.width / 2;
+      targetCard.classList.remove("is-drop-target");
+      reportChartGrid.insertBefore(draggedReportChart, placeAfter ? targetCard.nextSibling : targetCard);
+      Object.keys(reportChartInstances).forEach(function (key) {
+        reportChartInstances[key].resize();
+      });
+    });
+    reportChartGrid.addEventListener("dragend", function () {
+      reportChartGrid.querySelectorAll(".report-chart-card").forEach(function (card) {
+        card.classList.remove("is-dragging", "is-drop-target");
+      });
+      draggedReportChart = null;
+    });
+    reportChartGrid.addEventListener("pointerdown", function (event) {
+      var dragHandle = event.target.closest("[data-chart-drag-handle]");
+      var resizeHandle = event.target.closest("[data-resize-report-chart]");
+
+      if (dragHandle) {
+        event.preventDefault();
+        var movingCard = dragHandle.closest(".report-chart-card");
+        var startX = event.clientX;
+        var startY = event.clientY;
+        var startRect = null;
+        var placeholder = null;
+        var pointerOffsetX = 0;
+        var pointerOffsetY = 0;
+        var hasStartedMove = false;
+
+        function startMove(moveEvent) {
+          startRect = movingCard.getBoundingClientRect();
+          pointerOffsetX = startX - startRect.left;
+          pointerOffsetY = startY - startRect.top;
+          placeholder = document.createElement("article");
+          placeholder.className = "chart-drop-placeholder";
+          placeholder.style.gridColumn = movingCard.style.gridColumn || getComputedStyle(movingCard).gridColumnEnd.replace("span ", "span ");
+          placeholder.style.height = startRect.height + "px";
+          placeholder.setAttribute("data-chart-drop-placeholder", "");
+          reportChartGrid.insertBefore(placeholder, movingCard);
+          movingCard.classList.add("is-moving");
+          movingCard.style.position = "fixed";
+          movingCard.style.left = startRect.left + "px";
+          movingCard.style.top = startRect.top + "px";
+          movingCard.style.width = startRect.width + "px";
+          movingCard.style.height = startRect.height + "px";
+          movingCard.style.gridColumn = "";
+          hasStartedMove = true;
+          onMoveChart(moveEvent);
+        }
+
+        function onMoveChart(moveEvent) {
+          if (!hasStartedMove) {
+            var distanceX = moveEvent.clientX - startX;
+            var distanceY = moveEvent.clientY - startY;
+            if (Math.sqrt(distanceX * distanceX + distanceY * distanceY) < 8) {
+              return;
+            }
+            startMove(moveEvent);
+            return;
+          }
+          movingCard.style.left = (moveEvent.clientX - pointerOffsetX) + "px";
+          movingCard.style.top = (moveEvent.clientY - pointerOffsetY) + "px";
+          var target = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+          var targetCard = target ? target.closest(".report-chart-card") : null;
+          reportChartGrid.querySelectorAll(".report-chart-card").forEach(function (card) {
+            if (card !== movingCard) card.classList.remove("is-drop-target");
+          });
+          if (targetCard && targetCard !== movingCard) {
+            var targetBox = targetCard.getBoundingClientRect();
+            var placeAfter = moveEvent.clientX > targetBox.left + targetBox.width / 2;
+            targetCard.classList.add("is-drop-target");
+            reportChartGrid.insertBefore(placeholder, placeAfter ? targetCard.nextSibling : targetCard);
+          } else if (target === reportChartGrid || (target && target.closest("[data-report-chart-grid]"))) {
+            var cards = Array.prototype.slice.call(reportChartGrid.querySelectorAll(".report-chart-card:not(.is-moving)"));
+            var placed = false;
+            cards.some(function (card) {
+              var box = card.getBoundingClientRect();
+              if (moveEvent.clientY < box.top + box.height / 2) {
+                reportChartGrid.insertBefore(placeholder, card);
+                placed = true;
+                return true;
+              }
+              return false;
+            });
+            if (!placed) reportChartGrid.appendChild(placeholder);
+          }
+        }
+
+        function onDropChart(upEvent) {
+          if (!hasStartedMove) {
+            document.removeEventListener("pointermove", onMoveChart);
+            document.removeEventListener("pointerup", onDropChart);
+            return;
+          }
+          reportChartGrid.insertBefore(movingCard, placeholder);
+          placeholder.remove();
+          movingCard.style.position = "";
+          movingCard.style.left = "";
+          movingCard.style.top = "";
+          movingCard.style.width = "";
+          movingCard.style.height = "";
+          movingCard.style.gridColumn = movingCard.getAttribute("data-chart-span") ? "span " + movingCard.getAttribute("data-chart-span") : "";
+          reportChartGrid.querySelectorAll(".report-chart-card").forEach(function (card) {
+            card.classList.remove("is-dragging", "is-moving", "is-drop-target");
+          });
+          Object.keys(reportChartInstances).forEach(function (key) {
+            reportChartInstances[key].resize();
+          });
+          document.removeEventListener("pointermove", onMoveChart);
+          document.removeEventListener("pointerup", onDropChart);
+        }
+
+        document.addEventListener("pointermove", onMoveChart);
+        document.addEventListener("pointerup", onDropChart);
+        return;
+      }
+
+      if (!resizeHandle) return;
+      event.preventDefault();
+      var card = resizeHandle.closest(".report-chart-card");
+      var canvasWrap = card.querySelector(".canvas-wrap");
+      var startX = event.clientX;
+      var startY = event.clientY;
+      var initialSpan = Number(card.getAttribute("data-chart-span")) || (card.classList.contains("wide-chart") ? 8 : 4);
+      var initialHeight = canvasWrap.offsetHeight;
+      var spanOptions = [4, 6, 8, 12];
+
+      function onPointerMove(moveEvent) {
+        var spanStep = Math.round((moveEvent.clientX - startX) / 130);
+        var spanIndex = Math.max(0, Math.min(spanOptions.length - 1, spanOptions.indexOf(initialSpan) + spanStep));
+        var nextSpan = spanOptions[spanIndex];
+        var nextHeight = Math.max(210, Math.min(520, initialHeight + moveEvent.clientY - startY));
+        card.style.gridColumn = "span " + nextSpan;
+        card.setAttribute("data-chart-span", String(nextSpan));
+        canvasWrap.style.height = nextHeight + "px";
+        card.classList.remove("wide-chart");
+        resizeReportChartInstance(card);
+      }
+
+      function onPointerUp() {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        resizeReportChartInstance(card);
+      }
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
     });
 
     document.querySelector('[data-sort-key="createdDate"]').classList.add("sorted-desc");

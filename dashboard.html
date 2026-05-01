@@ -40,18 +40,42 @@
           <article class="card summary-card dashboard-kpi"><p class="summary-label">Avg Age</p><p class="summary-value" data-kpi-value="avgAge">0d</p><div class="summary-note">Open defects</div></article>
         </div>
 
-        <section class="card dashboard-section dashboard-filter-panel">
+        <section class="card dashboard-section">
+          <div class="card-header">
+            <div>
+              <h2>Charts</h2>
+              <p class="section-subtitle">Visual summaries based on the current dashboard filters. Add extra chart tiles as needed.</p>
+            </div>
+            <div class="filter-actions">
+              <select class="restore-chart-select" data-restore-report-chart hidden>
+                <option value="">Restore removed chart</option>
+              </select>
+              <button class="add-project-button" type="button" data-open-report-chart-modal><span>+</span> Add Chart</button>
+            </div>
+          </div>
+          <div class="report-chart-grid" data-report-chart-grid>
+            <article class="report-chart-card" data-chart-id="status"><div class="chart-title-row"><div><h3>Defects by Status</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+            <article class="report-chart-card" data-chart-id="severity"><div class="chart-title-row"><div><h3>Defects by Severity</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+            <article class="report-chart-card" data-chart-id="environment"><div class="chart-title-row"><div><h3>Defects by Environment</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+            <article class="report-chart-card" data-chart-id="releaseVersion"><div class="chart-title-row"><div><h3>Defects by Release</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+            <article class="report-chart-card wide-chart" data-chart-id="trend"><div class="chart-title-row"><div><h3>Created Defect Trend</h3><p class="chart-meta" data-chart-meta>Monthly intake</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+            <article class="report-chart-card" data-chart-id="aging"><div class="chart-title-row"><div><h3>Open Aging Buckets</h3><p class="chart-meta" data-chart-meta>Open defects only</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
+          </div>
+        </section>
+
+        <section class="card dashboard-section dashboard-filter-panel is-collapsed">
           <div class="card-header">
             <div>
               <h2>Dashboard Filters</h2>
-              <p class="section-subtitle">Filter the full dashboard view. Cards, charts, and the table refresh together.</p>
+              <p class="section-subtitle">Filter the table and dashboard view before reviewing the defect summary.</p>
             </div>
-            <div class="filter-actions">
-              <button type="button" data-dashboard-reset>Reset Filters</button>
-              <button type="button" data-dashboard-export>Export CSV</button>
+            <div class="filter-actions header-action-links dashboard-filter-actions">
+              <button class="header-action" type="button" data-toggle-dashboard-filters aria-expanded="false"><span data-filter-toggle-label>Expand</span></button>
+              <button class="header-action" type="button" data-dashboard-reset><span>Clear Filters</span></button>
+              <button class="header-action" type="button" data-dashboard-export><span>Export CSV</span></button>
             </div>
           </div>
-          <div class="card-pad">
+          <div class="card-pad" data-dashboard-filter-body hidden>
             <div class="filters dashboard-report-filters">
               <div><label>Search</label><input type="text" data-report-filter="search" placeholder="Defect ID, title, notes"></div>
               <div><label>Project</label><select data-report-filter="project"><option value="">All Projects</option></select></div>
@@ -64,24 +88,6 @@
               <div><label>Created From</label><input type="date" data-report-filter="from"></div>
               <div><label>Created To</label><input type="date" data-report-filter="to"></div>
             </div>
-          </div>
-        </section>
-
-        <section class="card dashboard-section">
-          <div class="card-header">
-            <div>
-              <h2>Charts</h2>
-              <p class="section-subtitle">Visual summaries based on the current dashboard filters. Add extra chart tiles as needed.</p>
-            </div>
-            <button class="add-project-button" type="button" data-open-report-chart-modal><span>+</span> Add Chart</button>
-          </div>
-          <div class="report-chart-grid" data-report-chart-grid>
-            <article class="report-chart-card" data-chart-id="status"><div class="chart-title-row"><div><h3>Defects by Status</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
-            <article class="report-chart-card" data-chart-id="severity"><div class="chart-title-row"><div><h3>Defects by Severity</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
-            <article class="report-chart-card" data-chart-id="environment"><div class="chart-title-row"><div><h3>Defects by Environment</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
-            <article class="report-chart-card" data-chart-id="releaseVersion"><div class="chart-title-row"><div><h3>Defects by Release</h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div></article>
-            <article class="report-chart-card wide-chart" data-chart-id="trend"><div class="chart-title-row"><div><h3>Created Defect Trend</h3><p class="chart-meta" data-chart-meta>Monthly intake</p></div></div><div class="canvas-wrap tall"><canvas></canvas></div></article>
-            <article class="report-chart-card" data-chart-id="aging"><div class="chart-title-row"><div><h3>Open Aging Buckets</h3><p class="chart-meta" data-chart-meta>Open defects only</p></div></div><div class="canvas-wrap tall"><canvas></canvas></div></article>
           </div>
         </section>
 

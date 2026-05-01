@@ -15,6 +15,7 @@
   --info: #262828;
   --neutral: #262828;
   --shadow: none;
+  --chart-canvas-height: 250px;
 }
 
 * {
@@ -267,6 +268,7 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .card-pad {
@@ -374,8 +376,65 @@ textarea {
 }
 
 .dashboard-filter-panel .card-header {
-  align-items: flex-start;
+  align-items: center;
 }
+
+.dashboard-filter-panel.is-collapsed .card-pad {
+  display: none;
+}
+
+.dashboard-filter-actions {
+  gap: 0;
+}
+
+.header-action-links {
+  gap: 0;
+}
+
+.header-action-links .header-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #303635;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.header-action-links .header-action span {
+  line-height: 18px;
+}
+
+.header-action-links .header-action:not(:last-child) {
+  margin-right: 13px;
+  padding-right: 13px;
+}
+
+.header-action-links .header-action:not(:last-child)::after {
+  content: "|";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  color: #303635;
+  font-weight: 400;
+  transform: translate(50%, -50%);
+  text-decoration: none;
+}
+
+.header-action-links .header-action:hover,
+.header-action-links .header-action:focus {
+  color: #0e1010;
+  text-decoration-color: #0e1010;
+}
+
 
 .dashboard-report-filters {
   grid-template-columns: repeat(5, minmax(150px, 1fr));
@@ -418,6 +477,8 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .chart-actions button {
@@ -514,28 +575,149 @@ textarea {
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 18px;
   padding: 20px;
+  align-items: stretch;
 }
 
 .report-chart-card {
+  position: relative;
+  align-self: start;
   grid-column: span 4;
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #ffffff;
+  transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
 }
 
 .report-chart-card.wide-chart {
   grid-column: span 8;
 }
 
+.report-chart-card.is-dragging {
+  opacity: 0.45;
+}
+
+.report-chart-card.is-moving {
+  z-index: 30;
+  opacity: 0.94;
+  pointer-events: none;
+}
+
+.report-chart-card.is-drop-target {
+  border-style: dashed;
+  background: #e7e7e7;
+}
+
+.chart-drop-placeholder {
+  align-self: start;
+  min-height: calc(var(--chart-canvas-height) + 116px);
+  border: 2px dashed #7ea687;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(181, 204, 187, 0.35), rgba(231, 231, 231, 0.65));
+}
+
+.chart-drag-handle {
+  display: inline-grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #303635;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #303635;
+  cursor: grab;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.chart-drag-handle:active {
+  cursor: grabbing;
+}
+
+.chart-remove-button {
+  display: inline-grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #303635;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #303635;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.chart-remove-button:hover {
+  background: #5c1c1c;
+  border-color: #5c1c1c;
+  color: #ffffff;
+}
+
+.chart-resize-handle {
+  position: absolute;
+  right: -13px;
+  bottom: -22px;
+  z-index: 2;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #303635;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #303635;
+  cursor: nwse-resize;
+}
+
+.chart-resize-handle::before,
+.chart-resize-handle::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: #303635;
+  transform: rotate(-45deg);
+}
+
+.chart-resize-handle::before {
+  top: 8px;
+  left: 5px;
+}
+
+.chart-resize-handle::after {
+  top: 13px;
+  left: 7px;
+  width: 9px;
+}
+
+.chart-resize-handle:hover {
+  background: #e7e7e7;
+}
+
 .canvas-wrap {
   position: relative;
-  height: 230px;
+  height: var(--chart-canvas-height);
+}
+
+.canvas-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.restore-chart-select {
+  width: auto;
+  min-width: 190px;
+  margin: 0;
 }
 
 .canvas-wrap.tall {
-  height: 290px;
+  height: var(--chart-canvas-height);
 }
 
 .report-table th {
@@ -546,8 +728,13 @@ textarea {
 .report-table th::after {
   content: "↕";
   margin-left: 8px;
-  color: #e7e7e7;
-  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+.report-table th.sorted-asc::after,
+.report-table th.sorted-desc::after {
+  color: #ffffff;
 }
 
 .report-table th.sorted-asc::after {
@@ -578,7 +765,7 @@ table {
 
 th,
 td {
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
@@ -587,19 +774,35 @@ td {
 
 th:first-child,
 td:first-child {
-  padding-left: 28px;
+  padding-left: 20px;
 }
 
 th:last-child,
 td:last-child {
-  padding-right: 28px;
+  padding-right: 20px;
 }
 
-th {
-  background: #262828;
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--primary);
   color: #ffffff;
+  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--primary-dark);
+  white-space: nowrap;
+}
+
+thead th:first-child {
+  border-top-left-radius: 8px;
+}
+
+thead th:last-child {
+  border-top-right-radius: 8px;
 }
 
 tbody tr:hover {
