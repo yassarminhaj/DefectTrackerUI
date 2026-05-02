@@ -14,14 +14,14 @@
       <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
       <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-expanded="true"><span data-sidebar-toggle-icon>&lsaquo;</span></button>
       <nav class="nav">
-        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
-        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
-        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
-        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
-        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
-        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
-        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
-        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+        <a data-nav href="dashboard.html"><span class="nav-icon">&#9633;</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">&#8801;</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">+</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">&#9636;</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">&#9678;</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">&#9673;</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">&#8596;</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">&#9637;</span>Reports</a>
       </nav>
     </aside>
     <main class="main">
@@ -30,27 +30,41 @@
         <span class="topbar-meta">DEV, SIT, UAT, Pre-Prod, PROD</span>
       </header>
       <section class="content">
-        <div class="grid grid-2">
-          <form class="card card-pad" data-demo-form>
-            <h2 class="section-title">Environment Form</h2>
-            <label for="envName">Environment Name</label>
-            <input id="envName" type="text" value="UAT">
-            <label for="envDescription">Description</label>
-            <textarea id="envDescription">User acceptance testing environment for business validation.</textarea>
-            <label for="envStatus">Active/Inactive</label>
-            <select id="envStatus"><option>Active</option><option>Inactive</option></select>
-            <div class="form-actions">
-              <button class="button-primary" type="submit">Save Environment</button>
-              <button type="button">Clear</button>
-              <span class="muted" data-form-message></span>
+        <section class="card management-card">
+          <div class="card-header management-header">
+            <div>
+              <h2>Environment List</h2>
+              <p class="management-subtitle">Add and maintain environment records inline.</p>
             </div>
-          </form>
-          <section class="card">
-            <div class="card-header"><h2>Environment List</h2></div>
+            <button class="add-record-button" type="button" data-env-add-trigger aria-label="Add environment"><span>+</span> Add Environment</button>
+          </div>
             <div class="table-wrap">
-              <table>
-                <thead><tr><th>Environment Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody>
+              <table class="management-table">
+                <thead>
+                  <tr>
+                    <th>Environment Name</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody data-env-table-body>
+                  <tr class="inline-add-row" data-env-add-row hidden>
+                    <td><input data-env-name type="text" placeholder="Environment name"></td>
+                    <td><input data-env-description type="text" placeholder="Short environment description"></td>
+                    <td>
+                      <select data-env-status>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div class="row-actions">
+                        <button class="button-primary" type="button" data-save-env>Save</button>
+                        <button type="button" data-cancel-env>Cancel</button>
+                      </div>
+                    </td>
+                  </tr>
                   <tr><td>DEV</td><td>Developer integration and early validation.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
                   <tr><td>SIT</td><td>System integration testing environment.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
                   <tr><td>UAT</td><td>User acceptance testing with business users.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
@@ -59,8 +73,7 @@
                 </tbody>
               </table>
             </div>
-          </section>
-        </div>
+        </section>
       </section>
     </main>
   </div>

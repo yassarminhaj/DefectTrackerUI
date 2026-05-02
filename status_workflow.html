@@ -8,89 +8,64 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
-<body>
+<body class="status-workflow-page">
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
       <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-expanded="true"><span data-sidebar-toggle-icon>&lsaquo;</span></button>
       <nav class="nav">
-        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
-        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
-        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
-        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
-        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
-        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
-        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
-        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+        <a data-nav href="dashboard.html"><span class="nav-icon">&#9633;</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">&#8801;</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">+</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">&#9636;</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">&#9678;</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">&#9673;</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">&#8596;</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">&#9637;</span>Reports</a>
       </nav>
     </aside>
     <main class="main">
       <header class="topbar">
         <h1>Status Workflow</h1>
-        <span class="topbar-meta">Configurable defect lifecycle</span>
+        <span class="topbar-meta">Visual defect lifecycle builder</span>
       </header>
       <section class="content">
-        <section class="card">
-          <div class="card-header">
-            <h2>Status Configuration</h2>
-            <button class="button-primary">Add Status</button>
+        <section class="card workflow-editor-card" data-workflow-editor>
+          <div class="card-header workflow-editor-header">
+            <div>
+              <h2>Workflow Editor</h2>
+              <p class="management-subtitle">Process nodes define defect statuses and allowed transitions.</p>
+            </div>
+            <div class="workflow-toolbar" aria-label="Workflow controls">
+              <button type="button" data-workflow-add-process>Add Process</button>
+              <button class="button-primary" type="button" data-workflow-save>Save Workflow</button>
+              <button type="button" data-workflow-clear>Reset / Clear Canvas</button>
+              <button type="button" data-workflow-delete>Delete Selected</button>
+            </div>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Status Name</th>
-                  <th>Active/Inactive</th>
-                  <th>Terminal Status</th>
-                  <th>Allowed Next Statuses</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>New</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Assigned</td><td><button>Edit</button></td></tr>
-                <tr><td>Assigned</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>In Progress</td><td><button>Edit</button></td></tr>
-                <tr><td>In Progress</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Fixed, Developer Rejected</td><td><button>Edit</button></td></tr>
-                <tr><td>Fixed</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Retest</td><td><button>Edit</button></td></tr>
-                <tr><td>Retest</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Closed, Assigned Again, Not a Defect</td><td><button>Edit</button></td></tr>
-                <tr><td>Closed</td><td><span class="badge badge-active">Active</span></td><td>Yes</td><td>Reopened</td><td><button>Edit</button></td></tr>
-                <tr><td>Reopened</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Assigned</td><td><button>Edit</button></td></tr>
-                <tr><td>Developer Rejected</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>Assigned Again, Not a Defect</td><td><button>Edit</button></td></tr>
-                <tr><td>Not a Defect</td><td><span class="badge badge-active">Active</span></td><td>Yes</td><td>-</td><td><button>Edit</button></td></tr>
-                <tr><td>Assigned Again</td><td><span class="badge badge-active">Active</span></td><td>No</td><td>In Progress</td><td><button>Edit</button></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
 
-        <section class="card card-pad" style="margin-top:18px;">
-          <h2 class="section-title">Visual Workflow</h2>
-          <div class="workflow" style="margin-top:14px;">
-            <div class="workflow-row">
-              <span class="workflow-box">New</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Assigned</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">In Progress</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Fixed</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Retest</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Closed</span>
+          <div class="workflow-canvas-shell">
+            <div class="workflow-canvas" data-workflow-canvas tabindex="0" aria-label="Status workflow canvas">
+              <div class="workflow-zoom-controls" aria-label="Canvas zoom controls">
+                <span class="workflow-pan-mode-hint" data-workflow-pan-hint>Pan mode</span>
+                <button type="button" data-workflow-zoom-in aria-label="Zoom in">+</button>
+                <button type="button" data-workflow-zoom-out aria-label="Zoom out">-</button>
+              </div>
+              <div class="workflow-selection-box" data-workflow-selection-box></div>
+              <svg class="workflow-edge-layer" data-workflow-edges aria-hidden="true">
+                <defs>
+                  <marker id="workflowArrow" markerWidth="14" markerHeight="14" refX="12" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+                    <path class="workflow-arrow-head" d="M0,0 L12,6 L0,12 z"></path>
+                  </marker>
+                </defs>
+              </svg>
+              <div class="workflow-node-layer" data-workflow-nodes></div>
             </div>
-            <div class="workflow-row">
-              <span class="workflow-box">Retest</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Assigned Again</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">In Progress</span>
-            </div>
-            <div class="workflow-row">
-              <span class="workflow-box">Closed</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Reopened</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Assigned</span>
-            </div>
-            <div class="workflow-row">
-              <span class="workflow-box">In Progress</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Developer Rejected</span>
-            </div>
-            <div class="workflow-row">
-              <span class="workflow-box">Retest</span><span class="workflow-arrow">&rarr;</span>
-              <span class="workflow-box">Not a Defect</span>
-            </div>
+          </div>
+
+          <div class="workflow-footer">
+            <p class="workflow-message" data-workflow-message>Saved workflows restore automatically in this static prototype.</p>
+            <div class="workflow-derived" data-workflow-derived></div>
           </div>
         </section>
       </section>

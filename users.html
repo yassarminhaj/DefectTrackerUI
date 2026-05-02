@@ -14,14 +14,14 @@
       <div class="brand"><span class="brand-mark">DT</span><span>Defect Tracker</span></div>
       <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Collapse sidebar" aria-expanded="true"><span data-sidebar-toggle-icon>&lsaquo;</span></button>
       <nav class="nav">
-        <a data-nav href="dashboard.html"><span class="nav-icon">▣</span>Dashboard</a>
-        <a data-nav href="defect_list.html"><span class="nav-icon">≡</span>Defects</a>
-        <a data-nav href="defect_create.html"><span class="nav-icon">＋</span>Create Defect</a>
-        <a data-nav href="projects.html"><span class="nav-icon">▤</span>Projects</a>
-        <a data-nav href="users.html"><span class="nav-icon">◉</span>Users</a>
-        <a data-nav href="environments.html"><span class="nav-icon">◎</span>Environments</a>
-        <a data-nav href="status_workflow.html"><span class="nav-icon">↔</span>Status Workflow</a>
-        <a data-nav href="reports.html"><span class="nav-icon">▥</span>Reports</a>
+        <a data-nav href="dashboard.html"><span class="nav-icon">&#9633;</span>Dashboard</a>
+        <a data-nav href="defect_list.html"><span class="nav-icon">&#8801;</span>Defects</a>
+        <a data-nav href="defect_create.html"><span class="nav-icon">+</span>Create Defect</a>
+        <a data-nav href="projects.html"><span class="nav-icon">&#9636;</span>Projects</a>
+        <a data-nav href="users.html"><span class="nav-icon">&#9678;</span>Users</a>
+        <a data-nav href="environments.html"><span class="nav-icon">&#9673;</span>Environments</a>
+        <a data-nav href="status_workflow.html"><span class="nav-icon">&#8596;</span>Status Workflow</a>
+        <a data-nav href="reports.html"><span class="nav-icon">&#9637;</span>Reports</a>
       </nav>
     </aside>
     <main class="main">
@@ -30,30 +30,43 @@
         <span class="topbar-meta">Phase 1: same access for all users</span>
       </header>
       <section class="content">
-        <p class="page-intro">This prototype intentionally excludes role management. All users have the same access in Phase 1.</p>
-        <div class="grid grid-2">
-          <form class="card card-pad" data-demo-form>
-            <h2 class="section-title">User Form</h2>
-            <label for="name">Name</label>
-            <input id="name" type="text" value="Aisha Khan">
-            <label for="email">Email</label>
-            <input id="email" type="email" value="aisha.khan@example.com">
-            <label for="username">Username</label>
-            <input id="username" type="text" value="aisha.khan">
-            <label for="userStatus">Active/Inactive</label>
-            <select id="userStatus"><option>Active</option><option>Inactive</option></select>
-            <div class="form-actions">
-              <button class="button-primary" type="submit">Save User</button>
-              <button type="button">Clear</button>
-              <span class="muted" data-form-message></span>
+        <section class="card management-card users-list-card">
+          <div class="card-header management-header">
+            <div>
+              <h2>User List</h2>
+              <p class="management-subtitle">Add and maintain users inline. Role management is intentionally excluded in Phase 1.</p>
             </div>
-          </form>
-          <section class="card">
-            <div class="card-header"><h2>User List</h2></div>
+            <button class="add-record-button" type="button" data-user-add-trigger aria-label="Add user"><span>+</span> Add User</button>
+          </div>
             <div class="table-wrap">
-              <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Username</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody>
+              <table class="management-table users-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody data-user-table-body>
+                  <tr class="inline-add-row" data-user-add-row hidden>
+                    <td><input data-user-name type="text" placeholder="Full name"></td>
+                    <td><input data-user-email type="email" placeholder="name@example.com"></td>
+                    <td><input data-user-username type="text" placeholder="username"></td>
+                    <td>
+                      <select data-user-status>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div class="row-actions">
+                        <button class="button-primary" type="button" data-save-user>Save</button>
+                        <button type="button" data-cancel-user>Cancel</button>
+                      </div>
+                    </td>
+                  </tr>
                   <tr><td>Aisha Khan</td><td>aisha.khan@example.com</td><td>aisha.khan</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
                   <tr><td>Omar Salem</td><td>omar.salem@example.com</td><td>omar.salem</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
                   <tr><td>Leena Faris</td><td>leena.faris@example.com</td><td>leena.faris</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
@@ -61,8 +74,7 @@
                 </tbody>
               </table>
             </div>
-          </section>
-        </div>
+        </section>
       </section>
     </main>
   </div>

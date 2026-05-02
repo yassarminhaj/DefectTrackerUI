@@ -108,6 +108,10 @@
       saveSidebarMode(nextMode);
       refreshAfterSidebarChange();
     });
+
+    window.requestAnimationFrame(function () {
+      appShell.classList.add("is-sidebar-ready");
+    });
   }
 
   document.querySelectorAll("[data-nav]").forEach(function (link) {
@@ -1370,6 +1374,1210 @@
       resetProjectRow();
       setProjectRowVisible(false);
     });
+  }
+
+  function initSimpleInlineManager(config) {
+    var addButton = document.querySelector(config.trigger);
+    var addRow = document.querySelector(config.row);
+    var tableBody = document.querySelector(config.body);
+
+    if (!addButton || !addRow || !tableBody) {
+      return;
+    }
+
+    var inputs = config.inputs.map(function (item) {
+      return {
+        key: item.key,
+        fallback: item.fallback,
+        element: addRow.querySelector(item.selector)
+      };
+    });
+    var statusInput = addRow.querySelector(config.statusSelector);
+    var saveButton = addRow.querySelector(config.save);
+    var cancelButton = addRow.querySelector(config.cancel);
+
+    function resetRow() {
+      inputs.forEach(function (input) {
+        input.element.value = "";
+      });
+      statusInput.value = "Active";
+    }
+
+    function setRowVisible(isVisible) {
+      addRow.hidden = !isVisible;
+      addButton.innerHTML = isVisible ? "<span>-</span> Cancel" : "<span>+</span> " + config.addLabel;
+      addButton.setAttribute("aria-label", isVisible ? "Cancel new " + config.recordName : "Add " + config.recordName);
+      if (isVisible && inputs[0]) {
+        inputs[0].element.focus();
+      }
+    }
+
+    function appendCell(row, value) {
+      var cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    addButton.addEventListener("click", function () {
+      var shouldShow = addRow.hidden;
+      setRowVisible(shouldShow);
+      if (shouldShow) {
+        resetRow();
+      }
+    });
+
+    cancelButton.addEventListener("click", function () {
+      resetRow();
+      setRowVisible(false);
+    });
+
+    saveButton.addEventListener("click", function () {
+      var values = inputs.map(function (input) {
+        return {
+          value: input.element.value.trim(),
+          fallback: input.fallback,
+          element: input.element
+        };
+      });
+
+      if (!values[0].value) {
+        values[0].element.focus();
+        return;
+      }
+
+      var status = statusInput.value;
+      var badgeClass = status === "Active" ? "badge-active" : "badge-inactive";
+      var row = document.createElement("tr");
+      var statusCell = document.createElement("td");
+      var actionsCell = document.createElement("td");
+      var badge = document.createElement("span");
+      var editButton = document.createElement("button");
+
+      values.forEach(function (item) {
+        appendCell(row, item.value || item.fallback);
+      });
+
+      badge.className = "badge " + badgeClass;
+      badge.textContent = status;
+      editButton.type = "button";
+      editButton.textContent = "Edit";
+
+      statusCell.appendChild(badge);
+      actionsCell.appendChild(editButton);
+      row.appendChild(statusCell);
+      row.appendChild(actionsCell);
+
+      tableBody.insertBefore(row, addRow.nextSibling);
+      resetRow();
+      setRowVisible(false);
+    });
+  }
+
+  initSimpleInlineManager({
+    trigger: "[data-user-add-trigger]",
+    row: "[data-user-add-row]",
+    body: "[data-user-table-body]",
+    save: "[data-save-user]",
+    cancel: "[data-cancel-user]",
+    statusSelector: "[data-user-status]",
+    addLabel: "Add User",
+    recordName: "user",
+    inputs: [
+      { key: "name", selector: "[data-user-name]", fallback: "Unnamed User" },
+      { key: "email", selector: "[data-user-email]", fallback: "No email added." },
+      { key: "username", selector: "[data-user-username]", fallback: "No username added." }
+    ]
+  });
+
+  initSimpleInlineManager({
+    trigger: "[data-env-add-trigger]",
+    row: "[data-env-add-row]",
+    body: "[data-env-table-body]",
+    save: "[data-save-env]",
+    cancel: "[data-cancel-env]",
+    statusSelector: "[data-env-status]",
+    addLabel: "Add Environment",
+    recordName: "environment",
+    inputs: [
+      { key: "name", selector: "[data-env-name]", fallback: "Unnamed Environment" },
+      { key: "description", selector: "[data-env-description]", fallback: "No description added." }
+    ]
+  });
+
+  var defectFilterPanel = document.querySelector(".defect-filter-panel");
+  var defectFilterBody = document.querySelector("[data-defect-filter-body]");
+  var toggleDefectFiltersButton = document.querySelector("[data-toggle-defect-filters]");
+  var applyDefectFiltersButton = document.querySelector("[data-apply-defect-filters]");
+  var resetDefectFiltersButton = document.querySelector("[data-reset-defect-filters]");
+  var defectFilterControls = Array.prototype.slice.call(document.querySelectorAll("[data-defect-filter]"));
+  var defectResultCount = document.querySelector("[data-defect-result-count]");
+  var defectRows = Array.prototype.slice.call(document.querySelectorAll(".defect-filter-panel + .dashboard-section tbody tr"));
+
+  if (defectFilterPanel && defectFilterBody && toggleDefectFiltersButton) {
+    toggleDefectFiltersButton.addEventListener("click", function () {
+      var isCollapsed = defectFilterPanel.classList.toggle("is-collapsed");
+      var label = toggleDefectFiltersButton.querySelector("[data-defect-filter-toggle-label]");
+      defectFilterBody.hidden = isCollapsed;
+      if (label) label.textContent = isCollapsed ? "Expand" : "Collapse";
+      toggleDefectFiltersButton.setAttribute("aria-expanded", String(!isCollapsed));
+    });
+  }
+
+  function getDefectFilterValue(name) {
+    var control = document.querySelector('[data-defect-filter="' + name + '"]');
+    if (!control) return "";
+    var value = control.value.trim();
+    if (/^(All|Anyone)/.test(value)) return "";
+    return value.toLowerCase();
+  }
+
+  function applyDefectFilters() {
+    if (!defectRows.length) return;
+
+    var filters = {
+      search: getDefectFilterValue("search"),
+      project: getDefectFilterValue("project"),
+      environment: getDefectFilterValue("environment"),
+      status: getDefectFilterValue("status"),
+      severity: getDefectFilterValue("severity"),
+      priority: getDefectFilterValue("priority"),
+      assignedTo: getDefectFilterValue("assignedTo"),
+      releaseVersion: getDefectFilterValue("releaseVersion")
+    };
+    var visibleCount = 0;
+
+    defectRows.forEach(function (row) {
+      var cells = row.cells;
+      var rowData = {
+        search: row.innerText.toLowerCase(),
+        project: cells[2].innerText.trim().toLowerCase(),
+        environment: cells[3].innerText.trim().toLowerCase(),
+        severity: cells[4].innerText.trim().toLowerCase(),
+        priority: cells[5].innerText.trim().toLowerCase(),
+        status: cells[6].innerText.trim().toLowerCase(),
+        assignedTo: cells[7].innerText.trim().toLowerCase(),
+        releaseVersion: cells[8].innerText.trim().toLowerCase()
+      };
+      var isVisible = true;
+
+      Object.keys(filters).forEach(function (key) {
+        if (!filters[key]) return;
+        if (key === "search") {
+          isVisible = isVisible && rowData.search.indexOf(filters[key]) > -1;
+          return;
+        }
+        isVisible = isVisible && rowData[key] === filters[key];
+      });
+
+      row.hidden = !isVisible;
+      if (isVisible) visibleCount += 1;
+    });
+
+    if (defectResultCount) {
+      defectResultCount.textContent = visibleCount + (visibleCount === 1 ? " matching record" : " matching records");
+    }
+  }
+
+  if (applyDefectFiltersButton) {
+    applyDefectFiltersButton.addEventListener("click", applyDefectFilters);
+  }
+
+  if (resetDefectFiltersButton) {
+    resetDefectFiltersButton.addEventListener("click", function () {
+      defectFilterControls.forEach(function (control) {
+        control.selectedIndex = 0;
+        control.value = control.tagName === "INPUT" ? "" : control.value;
+      });
+      applyDefectFilters();
+    });
+  }
+
+  var fallbackStepsEditor = document.querySelector("[data-steps-editor]");
+  var fallbackStepsHtml = document.querySelector("[data-steps-html]");
+
+  if (fallbackStepsEditor && fallbackStepsHtml) {
+    function updateFallbackStepsHtml() {
+      if (!window.defectStepsEditor) {
+        fallbackStepsHtml.value = fallbackStepsEditor.innerHTML;
+      }
+    }
+
+    function insertFallbackImage(src) {
+      var wrapper = document.createElement("div");
+      var image = document.createElement("img");
+      var handle = document.createElement("span");
+      wrapper.className = "resizable-image-node is-selected";
+      wrapper.contentEditable = "false";
+      image.src = src;
+      image.alt = "Pasted reproduction screenshot";
+      image.style.width = "420px";
+      handle.className = "image-resize-handle";
+      wrapper.appendChild(image);
+      wrapper.appendChild(handle);
+      fallbackStepsEditor.appendChild(wrapper);
+      fallbackStepsEditor.appendChild(document.createElement("p"));
+      updateFallbackStepsHtml();
+    }
+
+    function handleStepsImagePaste(event) {
+      var items = event.clipboardData && event.clipboardData.items ? Array.from(event.clipboardData.items) : [];
+      var imageItem = items.find(function (item) { return item.type.indexOf("image/") === 0; });
+      if (!imageItem) {
+        window.setTimeout(updateFallbackStepsHtml, 0);
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var file = imageItem.getAsFile();
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        if (window.defectStepsEditor) {
+          var editorWidth = fallbackStepsEditor.getBoundingClientRect().width - 32;
+          window.defectStepsEditor
+            .chain()
+            .focus()
+            .setImage({
+              src: reader.result,
+              alt: "Pasted reproduction screenshot",
+              width: String(Math.max(120, Math.min(520, Math.round(editorWidth || 420))))
+            })
+            .createParagraphNear()
+            .run();
+          fallbackStepsHtml.value = window.defectStepsEditor.getHTML();
+          return;
+        }
+        insertFallbackImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    fallbackStepsEditor.addEventListener("input", updateFallbackStepsHtml);
+    fallbackStepsEditor.addEventListener("paste", handleStepsImagePaste, true);
+    updateFallbackStepsHtml();
+  }
+
+  var workflowEditor = document.querySelector("[data-workflow-editor]");
+
+  if (workflowEditor) {
+    var workflowStorageKey = "defectTrackerWorkflowDiagramV4";
+    var legacyWorkflowStorageKey = "defectTrackerWorkflowDiagram";
+    var workflowCanvas = workflowEditor.querySelector("[data-workflow-canvas]");
+    var workflowNodeLayer = workflowEditor.querySelector("[data-workflow-nodes]");
+    var workflowEdgeLayer = workflowEditor.querySelector("[data-workflow-edges]");
+    var workflowMessage = workflowEditor.querySelector("[data-workflow-message]");
+    var workflowDerived = workflowEditor.querySelector("[data-workflow-derived]");
+    var workflowSelectionBox = workflowEditor.querySelector("[data-workflow-selection-box]");
+    var workflowState = null;
+    var selectedWorkflowItem = null;
+    var selectedWorkflowNodeIds = [];
+    var nodeCounter = 20;
+    var edgeCounter = 20;
+    var suppressWorkflowCanvasClick = false;
+    var suppressWorkflowNodeClick = false;
+    var isWorkflowPanMode = false;
+    var isWorkflowSpaceDown = false;
+    var workflowViewport = { x: 0, y: 0 };
+    var workflowZoom = 1;
+    var workflowWorkspace = { width: 2600, height: 1600 };
+    var workflowHandles = ["top", "right", "bottom", "left"];
+
+    var defaultWorkflow = {
+      nodes: [
+        { id: "node_1", type: "process", label: "Assigned", position: { x: 265, y: 300 } },
+        { id: "node_2", type: "process", label: "InProgress", position: { x: 515, y: 300 } },
+        { id: "node_3", type: "process", label: "Fixed", position: { x: 765, y: 300 } },
+        { id: "node_4", type: "process", label: "Test", position: { x: 1015, y: 300 } },
+        { id: "node_5", type: "process", label: "Closed", position: { x: 1265, y: 300 } },
+        { id: "node_6", type: "process", label: "Rejected", position: { x: 515, y: 92 } }
+      ],
+      edges: [
+        { id: "edge_1", source: "node_1", sourceHandle: "right", target: "node_2", targetHandle: "left" },
+        { id: "edge_2", source: "node_2", sourceHandle: "right", target: "node_3", targetHandle: "left" },
+        { id: "edge_3", source: "node_3", sourceHandle: "right", target: "node_4", targetHandle: "left" },
+        { id: "edge_4", source: "node_4", sourceHandle: "right", target: "node_5", targetHandle: "left" },
+        { id: "edge_5", source: "node_2", sourceHandle: "top", target: "node_6", targetHandle: "bottom" },
+        { id: "edge_6", source: "node_4", sourceHandle: "bottom", target: "node_2", targetHandle: "bottom" }
+      ]
+    };
+
+    function cloneWorkflow(workflow) {
+      return JSON.parse(JSON.stringify(workflow));
+    }
+
+    function setWorkflowMessage(text, type) {
+      workflowMessage.textContent = text;
+      workflowMessage.classList.toggle("is-error", type === "error");
+      workflowMessage.classList.toggle("is-success", type === "success");
+      workflowMessage.classList.toggle("is-hint", type === "hint");
+    }
+
+    function nextNodeId() {
+      nodeCounter += 1;
+      return "node_" + nodeCounter;
+    }
+
+    function nextEdgeId() {
+      edgeCounter += 1;
+      return "edge_" + edgeCounter;
+    }
+
+    function findWorkflowNode(id) {
+      return workflowState.nodes.find(function (node) { return node.id === id; });
+    }
+
+    function selectWorkflowNodes(nodeIds) {
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = Array.from(new Set(nodeIds));
+      refreshWorkflowSelection();
+    }
+
+    function clearWorkflowSelection() {
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [];
+      refreshWorkflowSelection();
+    }
+
+    function getWorkflowNodeBounds(node) {
+      var size = getNodeSize(node);
+      return {
+        left: node.position.x,
+        top: node.position.y,
+        right: node.position.x + size.width,
+        bottom: node.position.y + size.height
+      };
+    }
+
+    function workflowBoundsIntersect(a, b) {
+      return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+    }
+
+    function refreshWorkflowSelection() {
+      workflowNodeLayer.querySelectorAll(".workflow-node").forEach(function (element) {
+        element.classList.toggle(
+          "is-selected",
+          selectedWorkflowNodeIds.indexOf(element.dataset.nodeId) > -1
+        );
+      });
+      workflowEdgeLayer.querySelectorAll("path[data-edge-id]").forEach(function (path) {
+        path.classList.toggle(
+          "is-selected",
+          selectedWorkflowItem && selectedWorkflowItem.type === "edge" && selectedWorkflowItem.id === path.dataset.edgeId
+        );
+      });
+    }
+
+    function getCanvasPoint(event) {
+      var rect = workflowCanvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left - workflowViewport.x) / workflowZoom,
+        y: (event.clientY - rect.top - workflowViewport.y) / workflowZoom
+      };
+    }
+
+    function getNodeSize(node) {
+      return { width: 150, height: 54 };
+    }
+
+    function getHandlePoint(nodeId, handleType) {
+      var node = findWorkflowNode(nodeId);
+      var size = getNodeSize(node);
+      var handlePoints = {
+        top: { x: node.position.x + size.width / 2, y: node.position.y },
+        right: { x: node.position.x + size.width, y: node.position.y + size.height / 2 },
+        bottom: { x: node.position.x + size.width / 2, y: node.position.y + size.height },
+        left: { x: node.position.x, y: node.position.y + size.height / 2 }
+      };
+      return handlePoints[handleType] || handlePoints.right;
+    }
+
+    function getHandleVector(handleType) {
+      var vectors = {
+        top: { x: 0, y: -1 },
+        right: { x: 1, y: 0 },
+        bottom: { x: 0, y: 1 },
+        left: { x: -1, y: 0 }
+      };
+      return vectors[handleType] || vectors.right;
+    }
+
+    function buildWorkflowPath(sourcePoint, targetPoint, sourceHandle, targetHandle) {
+      var sourceVector = getHandleVector(sourceHandle);
+      var targetVector = getHandleVector(targetHandle);
+      var sourceInset = 7;
+      var targetInset = 14;
+      var visibleSourcePoint = {
+        x: sourcePoint.x + sourceVector.x * sourceInset,
+        y: sourcePoint.y + sourceVector.y * sourceInset
+      };
+      var visibleTargetPoint = {
+        x: targetPoint.x + targetVector.x * targetInset,
+        y: targetPoint.y + targetVector.y * targetInset
+      };
+      var distance = Math.max(52, Math.min(120, Math.hypot(targetPoint.x - sourcePoint.x, targetPoint.y - sourcePoint.y) * 0.25));
+      return "M " + visibleSourcePoint.x + " " + visibleSourcePoint.y +
+        " C " + (visibleSourcePoint.x + sourceVector.x * distance) + " " + (visibleSourcePoint.y + sourceVector.y * distance) +
+        ", " + (visibleTargetPoint.x + targetVector.x * distance) + " " + (visibleTargetPoint.y + targetVector.y * distance) +
+        ", " + visibleTargetPoint.x + " " + visibleTargetPoint.y;
+    }
+
+    function applyWorkflowViewport() {
+      var transform = "translate(" + workflowViewport.x + "px, " + workflowViewport.y + "px) scale(" + workflowZoom + ")";
+      workflowEdgeLayer.style.transform = transform;
+      workflowNodeLayer.style.transform = transform;
+      workflowCanvas.style.backgroundPosition = workflowViewport.x + "px " + workflowViewport.y + "px";
+      workflowCanvas.style.backgroundSize = (28 * workflowZoom) + "px " + (28 * workflowZoom) + "px";
+    }
+
+    function renderWorkflowEdges(previewTarget) {
+      workflowEdgeLayer.querySelectorAll(".workflow-edge-path, .workflow-edge-hit, .workflow-edge-preview").forEach(function (path) {
+        path.remove();
+      });
+
+      workflowState.edges.forEach(function (edge) {
+        if (!findWorkflowNode(edge.source) || !findWorkflowNode(edge.target)) {
+          return;
+        }
+
+        var hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        edge.sourceHandle = edge.sourceHandle || "right";
+        edge.targetHandle = edge.targetHandle || "left";
+        var pathData = buildWorkflowPath(
+          getHandlePoint(edge.source, edge.sourceHandle),
+          getHandlePoint(edge.target, edge.targetHandle),
+          edge.sourceHandle,
+          edge.targetHandle
+        );
+        hitPath.setAttribute("d", pathData);
+        hitPath.dataset.edgeId = edge.id;
+        hitPath.classList.add("workflow-edge-hit");
+        path.setAttribute("d", pathData);
+        path.dataset.edgeId = edge.id;
+        path.classList.add("workflow-edge-path");
+        if (selectedWorkflowItem && selectedWorkflowItem.type === "edge" && selectedWorkflowItem.id === edge.id) {
+          path.classList.add("is-selected");
+          hitPath.classList.add("is-selected");
+        }
+
+        function selectEdge(event) {
+          event.stopPropagation();
+          selectedWorkflowItem = { type: "edge", id: edge.id };
+          selectedWorkflowNodeIds = [];
+          renderWorkflow();
+        }
+
+        hitPath.addEventListener("click", selectEdge);
+        path.addEventListener("click", selectEdge);
+        workflowEdgeLayer.appendChild(hitPath);
+        workflowEdgeLayer.appendChild(path);
+      });
+
+      if (previewTarget && previewTarget.source) {
+        var preview = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        preview.setAttribute("d", buildWorkflowPath(
+          getHandlePoint(previewTarget.source, previewTarget.sourceHandle),
+          previewTarget.target,
+          previewTarget.sourceHandle,
+          previewTarget.targetHandle || "left"
+        ));
+        preview.classList.add("workflow-edge-preview");
+        workflowEdgeLayer.appendChild(preview);
+      }
+    }
+
+    function renderWorkflowNodes() {
+      workflowNodeLayer.innerHTML = "";
+
+      workflowState.nodes.forEach(function (node) {
+        var element = document.createElement("div");
+        var label = document.createElement("div");
+
+        element.className = "workflow-node is-" + node.type;
+        element.dataset.nodeId = node.id;
+        element.style.left = node.position.x + "px";
+        element.style.top = node.position.y + "px";
+        if (selectedWorkflowNodeIds.indexOf(node.id) > -1) {
+          element.classList.add("is-selected");
+        }
+
+        var labelText = document.createElement("span");
+        var labelType = document.createElement("span");
+
+        label.className = "workflow-node-label";
+        labelText.textContent = node.label;
+        labelType.className = "workflow-node-type";
+        labelType.textContent = node.type;
+        label.appendChild(labelText);
+        label.appendChild(labelType);
+        label.addEventListener("dblclick", function (event) {
+          event.stopPropagation();
+          startWorkflowInlineEdit(node.id, label);
+        });
+
+        workflowHandles.forEach(function (handleName) {
+          var handle = document.createElement("span");
+          handle.className = "workflow-handle is-" + handleName;
+          handle.dataset.handle = handleName;
+          handle.title = "Connect from " + handleName;
+          handle.addEventListener("pointerdown", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            startWorkflowConnection(event, node.id, handleName);
+          });
+          element.appendChild(handle);
+        });
+
+        element.appendChild(label);
+        element.addEventListener("pointerdown", function (event) {
+          if (event.target.closest(".workflow-handle")) {
+            return;
+          }
+          if (event.target.closest(".workflow-label-input")) {
+            return;
+          }
+          if (event.detail > 1) {
+            event.preventDefault();
+            event.stopPropagation();
+            startWorkflowInlineEdit(node.id, label);
+            return;
+          }
+          event.stopPropagation();
+          startWorkflowNodeDrag(event, node.id);
+        });
+        element.addEventListener("click", function (event) {
+          event.stopPropagation();
+          if (suppressWorkflowNodeClick) {
+            return;
+          }
+          selectWorkflowNodes([node.id]);
+        });
+        element.addEventListener("dblclick", function (event) {
+          if (event.target.closest(".workflow-handle")) {
+            return;
+          }
+          event.stopPropagation();
+          startWorkflowInlineEdit(node.id, label);
+        });
+        workflowNodeLayer.appendChild(element);
+      });
+    }
+
+    function renderWorkflow() {
+      workflowEdgeLayer.setAttribute("width", workflowWorkspace.width);
+      workflowEdgeLayer.setAttribute("height", workflowWorkspace.height);
+      applyWorkflowViewport();
+      renderWorkflowNodes();
+      window.requestAnimationFrame(function () {
+        renderWorkflowEdges();
+        renderDerivedStatuses();
+      });
+    }
+
+    function startWorkflowPan(event) {
+      if (event.button !== 0 || event.target.closest(".workflow-node") || event.target.closest("[data-edge-id]") || event.target.closest(".workflow-zoom-controls")) {
+        return;
+      }
+
+      var start = { x: event.clientX, y: event.clientY };
+      var startViewport = { x: workflowViewport.x, y: workflowViewport.y };
+      var moved = false;
+
+      workflowCanvas.classList.add("is-panning");
+
+      function onPointerMove(moveEvent) {
+        moved = true;
+        workflowViewport.x = startViewport.x + moveEvent.clientX - start.x;
+        workflowViewport.y = startViewport.y + moveEvent.clientY - start.y;
+        applyWorkflowViewport();
+      }
+
+      function onPointerUp() {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        workflowCanvas.classList.remove("is-panning");
+        if (moved) {
+          suppressWorkflowCanvasClick = true;
+          window.setTimeout(function () {
+            suppressWorkflowCanvasClick = false;
+          }, 0);
+        }
+      }
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+    }
+
+    function updateWorkflowPanMode() {
+      workflowCanvas.classList.toggle("is-pan-mode", isWorkflowPanMode || isWorkflowSpaceDown);
+    }
+
+    function drawWorkflowSelectionBox(start, current) {
+      var left = Math.min(start.x, current.x);
+      var top = Math.min(start.y, current.y);
+      var width = Math.abs(current.x - start.x);
+      var height = Math.abs(current.y - start.y);
+      workflowSelectionBox.style.left = left + "px";
+      workflowSelectionBox.style.top = top + "px";
+      workflowSelectionBox.style.width = width + "px";
+      workflowSelectionBox.style.height = height + "px";
+    }
+
+    function getCanvasScreenPoint(event) {
+      var rect = workflowCanvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function startWorkflowSelection(event) {
+      if (event.button !== 0 || event.target.closest(".workflow-node") || event.target.closest("[data-edge-id]") || event.target.closest(".workflow-zoom-controls")) {
+        return;
+      }
+
+      var startScreen = getCanvasScreenPoint(event);
+      var startWorld = getCanvasPoint(event);
+      var moved = false;
+
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [];
+      workflowCanvas.classList.add("is-selecting");
+      workflowSelectionBox.classList.add("is-visible");
+      drawWorkflowSelectionBox(startScreen, startScreen);
+      refreshWorkflowSelection();
+
+      function onPointerMove(moveEvent) {
+        var currentScreen = getCanvasScreenPoint(moveEvent);
+        var currentWorld = getCanvasPoint(moveEvent);
+        var selectionDistance = Math.hypot(currentScreen.x - startScreen.x, currentScreen.y - startScreen.y);
+
+        if (selectionDistance > 4) {
+          moved = true;
+        }
+
+        drawWorkflowSelectionBox(startScreen, currentScreen);
+
+        var selectionBounds = {
+          left: Math.min(startWorld.x, currentWorld.x),
+          top: Math.min(startWorld.y, currentWorld.y),
+          right: Math.max(startWorld.x, currentWorld.x),
+          bottom: Math.max(startWorld.y, currentWorld.y)
+        };
+
+        selectedWorkflowNodeIds = workflowState.nodes
+          .filter(function (node) { return workflowBoundsIntersect(getWorkflowNodeBounds(node), selectionBounds); })
+          .map(function (node) { return node.id; });
+        refreshWorkflowSelection();
+      }
+
+      function onPointerUp() {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        workflowCanvas.classList.remove("is-selecting");
+        workflowSelectionBox.classList.remove("is-visible");
+        if (!moved) {
+          selectedWorkflowNodeIds = [];
+          refreshWorkflowSelection();
+        }
+        suppressWorkflowCanvasClick = true;
+        window.setTimeout(function () {
+          suppressWorkflowCanvasClick = false;
+        }, 0);
+      }
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+    }
+
+    function startWorkflowCanvasPointerDown(event) {
+      if (isWorkflowPanMode || isWorkflowSpaceDown) {
+        startWorkflowPan(event);
+        return;
+      }
+      startWorkflowSelection(event);
+    }
+
+    function startWorkflowNodeDrag(event, nodeId) {
+      var node = findWorkflowNode(nodeId);
+      var startPoint = getCanvasPoint(event);
+      var selectedNodes = selectedWorkflowNodeIds.indexOf(nodeId) > -1 ? selectedWorkflowNodeIds : [nodeId];
+      var startPositions = {};
+      var moved = false;
+
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = selectedNodes;
+      selectedNodes.forEach(function (selectedNodeId) {
+        var selectedNode = findWorkflowNode(selectedNodeId);
+        if (selectedNode) {
+          startPositions[selectedNodeId] = { x: selectedNode.position.x, y: selectedNode.position.y };
+        }
+      });
+      refreshWorkflowSelection();
+
+      function onPointerMove(moveEvent) {
+        var point = getCanvasPoint(moveEvent);
+        var dx = point.x - startPoint.x;
+        var dy = point.y - startPoint.y;
+        moved = true;
+
+        selectedNodes.forEach(function (selectedNodeId) {
+          var selectedNode = findWorkflowNode(selectedNodeId);
+          var selectedStartPosition = startPositions[selectedNodeId];
+          if (!selectedNode || !selectedStartPosition) {
+            return;
+          }
+          var size = getNodeSize(selectedNode);
+          selectedNode.position.x = Math.max(12, Math.min(workflowWorkspace.width - size.width - 12, selectedStartPosition.x + dx));
+          selectedNode.position.y = Math.max(12, Math.min(workflowWorkspace.height - size.height - 12, selectedStartPosition.y + dy));
+        });
+        renderWorkflowNodes();
+        renderWorkflowEdges();
+      }
+
+      function onPointerUp() {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+        suppressWorkflowCanvasClick = true;
+        suppressWorkflowNodeClick = moved;
+        window.setTimeout(function () {
+          suppressWorkflowCanvasClick = false;
+          suppressWorkflowNodeClick = false;
+        }, 0);
+        if (moved) {
+          renderWorkflow();
+        }
+      }
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+    }
+
+    function getNearestHandle(nodeId, point) {
+      var sides = workflowHandles.map(function (handleName) {
+        var handlePoint = getHandlePoint(nodeId, handleName);
+        return {
+          handle: handleName,
+          distance: Math.hypot(handlePoint.x - point.x, handlePoint.y - point.y)
+        };
+      });
+      sides.sort(function (a, b) { return a.distance - b.distance; });
+      return sides[0].handle;
+    }
+
+    function startWorkflowConnection(event, sourceId, sourceHandle) {
+      var preview = { source: sourceId, sourceHandle: sourceHandle, target: getCanvasPoint(event) };
+
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [];
+      renderWorkflowEdges(preview);
+
+      function onPointerMove(moveEvent) {
+        preview.target = getCanvasPoint(moveEvent);
+        renderWorkflowEdges(preview);
+      }
+
+      function onPointerUp(upEvent) {
+        var targetElement = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+        var targetHandleElement = targetElement ? targetElement.closest(".workflow-handle") : null;
+        var targetNode = targetElement ? targetElement.closest(".workflow-node") : null;
+        var targetId = targetNode ? targetNode.dataset.nodeId : "";
+        var targetPoint = getCanvasPoint(upEvent);
+        var targetHandle = targetHandleElement ? targetHandleElement.dataset.handle : (targetId ? getNearestHandle(targetId, targetPoint) : "");
+
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+
+        if (targetId && targetId !== sourceId) {
+          var exists = workflowState.edges.some(function (edge) {
+            return edge.source === sourceId && edge.target === targetId;
+          });
+          if (!exists) {
+            workflowState.edges.push({
+              id: nextEdgeId(),
+              source: sourceId,
+              sourceHandle: sourceHandle,
+              target: targetId,
+              targetHandle: targetHandle
+            });
+            setWorkflowMessage("Connection added. Save Workflow to keep it after refresh.", "");
+          }
+        }
+        renderWorkflow();
+      }
+
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+    }
+
+    function startWorkflowInlineEdit(nodeId, labelElement) {
+      var node = findWorkflowNode(nodeId);
+      var originalLabel = node.label;
+      var input = document.createElement("input");
+      var isCanceled = false;
+
+      input.className = "workflow-label-input";
+      input.type = "text";
+      input.value = originalLabel;
+      labelElement.innerHTML = "";
+      labelElement.appendChild(input);
+      input.focus();
+      input.select();
+
+      function finishEdit() {
+        var nextLabel = input.value.trim();
+        if (isCanceled) {
+          node.label = originalLabel;
+          renderWorkflow();
+          return;
+        }
+        if (!nextLabel) {
+          node.label = originalLabel;
+          renderWorkflow();
+          setWorkflowMessage("Node labels cannot be blank.", "error");
+          return;
+        }
+        node.label = nextLabel;
+        setWorkflowMessage("Node renamed. Save Workflow to keep the change.", "");
+        renderWorkflow();
+      }
+
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          input.blur();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          isCanceled = true;
+          input.blur();
+        }
+      });
+
+      input.addEventListener("pointerdown", function (event) {
+        event.stopPropagation();
+      });
+
+      input.addEventListener("blur", finishEdit, { once: true });
+    }
+
+    function renameWorkflowNode(nodeId) {
+      var nodeElement = workflowNodeLayer.querySelector('[data-node-id="' + nodeId + '"]');
+      var labelElement = nodeElement ? nodeElement.querySelector(".workflow-node-label") : null;
+      if (!labelElement) {
+        setWorkflowMessage("Node labels cannot be blank.", "error");
+        return;
+      }
+      startWorkflowInlineEdit(nodeId, labelElement);
+    }
+
+    function deleteSelectedWorkflowItem() {
+      if (!selectedWorkflowItem && !selectedWorkflowNodeIds.length) {
+        setWorkflowMessage("Select a node or connection first.", "error");
+        return;
+      }
+
+      if (selectedWorkflowNodeIds.length) {
+        var selectedNodeLookup = {};
+        selectedWorkflowNodeIds.forEach(function (nodeId) {
+          selectedNodeLookup[nodeId] = true;
+        });
+        workflowState.nodes = workflowState.nodes.filter(function (node) {
+          return !selectedNodeLookup[node.id];
+        });
+        workflowState.edges = workflowState.edges.filter(function (edge) {
+          return !selectedNodeLookup[edge.source] && !selectedNodeLookup[edge.target];
+        });
+      }
+
+      if (selectedWorkflowItem && selectedWorkflowItem.type === "edge") {
+        workflowState.edges = workflowState.edges.filter(function (edge) {
+          return edge.id !== selectedWorkflowItem.id;
+        });
+      }
+
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [];
+      setWorkflowMessage("Selected item deleted. Save Workflow to keep the change.", "");
+      renderWorkflow();
+    }
+
+    function addWorkflowNode() {
+      var count = workflowState.nodes.length;
+      var node = {
+        id: nextNodeId(),
+        type: "process",
+        label: "New Status",
+        position: { x: 90 + (count % 4) * 210, y: 110 + Math.floor(count / 4) * 150 }
+      };
+      workflowState.nodes.push(node);
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [node.id];
+      setWorkflowMessage("Process node added.", "");
+      renderWorkflow();
+    }
+
+    function getWorkflowWarnings() {
+      var warnings = [];
+      var processNodes = workflowState.nodes.filter(function (node) { return node.type === "process"; });
+      var labels = {};
+
+      if (!workflowState.nodes.length) {
+        warnings.push("Workflow must not be empty.");
+      }
+
+      if (!processNodes.length) {
+        warnings.push("At least one process node is required.");
+      }
+
+      processNodes.forEach(function (node) {
+        var label = node.label.trim().toLowerCase();
+        if (!label) {
+          warnings.push("Process node labels cannot be blank.");
+        }
+        if (labels[label]) {
+          warnings.push("Duplicate process status: " + node.label + ".");
+        }
+        labels[label] = true;
+      });
+
+      workflowState.edges.forEach(function (edge) {
+        if (!findWorkflowNode(edge.source) || !findWorkflowNode(edge.target)) {
+          warnings.push("A connection has a missing source or target.");
+        }
+      });
+
+      return warnings;
+    }
+
+    function getBlockingWorkflowErrors(warnings) {
+      return warnings.filter(function (warning) {
+        return warning.indexOf("must not be empty") > -1 ||
+          warning.indexOf("At least one process") > -1 ||
+          warning.indexOf("cannot be blank") > -1 ||
+          warning.indexOf("Duplicate process") > -1 ||
+          warning.indexOf("missing source") > -1;
+      });
+    }
+
+    function saveWorkflow() {
+      var warnings = getWorkflowWarnings();
+      var blockers = getBlockingWorkflowErrors(warnings);
+
+      if (blockers.length) {
+        setWorkflowMessage(blockers[0], "error");
+        return;
+      }
+
+      window.localStorage.setItem(workflowStorageKey, JSON.stringify(workflowState));
+      setWorkflowMessage(warnings.length ? "Saved with warning: " + warnings[0] : "Workflow saved.", "success");
+      renderDerivedStatuses();
+    }
+
+    function clearWorkflow() {
+      workflowState = { nodes: [], edges: [] };
+      selectedWorkflowItem = null;
+      selectedWorkflowNodeIds = [];
+      window.localStorage.removeItem(workflowStorageKey);
+      window.localStorage.removeItem(legacyWorkflowStorageKey);
+      workflowViewport = { x: 0, y: 0 };
+      workflowZoom = 1;
+      setWorkflowMessage("Canvas cleared. Add process nodes to build a new workflow.", "");
+      renderWorkflow();
+    }
+
+    function normalizeWorkflowState() {
+      workflowState.nodes = Array.isArray(workflowState.nodes) ? workflowState.nodes.filter(function (node) {
+        return node.type === "process";
+      }) : [];
+      workflowState.edges = Array.isArray(workflowState.edges) ? workflowState.edges : [];
+      var allowedNodeIds = {};
+      workflowState.nodes.forEach(function (node) {
+        allowedNodeIds[node.id] = true;
+      });
+      workflowState.edges = workflowState.edges.filter(function (edge) {
+        return allowedNodeIds[edge.source] && allowedNodeIds[edge.target];
+      });
+      workflowState.edges.forEach(function (edge) {
+        edge.sourceHandle = edge.sourceHandle || "right";
+        edge.targetHandle = edge.targetHandle || "left";
+      });
+      nodeCounter = workflowState.nodes.reduce(function (highest, node) {
+        var number = parseInt(String(node.id).replace(/\D/g, ""), 10);
+        return Number.isNaN(number) ? highest : Math.max(highest, number);
+      }, 20);
+      edgeCounter = workflowState.edges.reduce(function (highest, edge) {
+        var number = parseInt(String(edge.id).replace(/\D/g, ""), 10);
+        return Number.isNaN(number) ? highest : Math.max(highest, number);
+      }, 20);
+    }
+
+    function loadWorkflow() {
+      window.localStorage.removeItem(legacyWorkflowStorageKey);
+      var savedWorkflow = window.localStorage.getItem(workflowStorageKey);
+
+      if (savedWorkflow) {
+        try {
+          workflowState = JSON.parse(savedWorkflow);
+          normalizeWorkflowState();
+          setWorkflowMessage("Saved workflow restored.", "success");
+          return;
+        } catch (error) {
+          window.localStorage.removeItem(workflowStorageKey);
+        }
+      }
+
+      workflowState = cloneWorkflow(defaultWorkflow);
+      normalizeWorkflowState();
+      workflowViewport = { x: 0, y: 0 };
+      workflowZoom = 1;
+      setWorkflowMessage("Tip: double-click empty canvas to pan.", "hint");
+    }
+
+    function setWorkflowZoom(nextZoom) {
+      workflowZoom = Math.max(0.65, Math.min(1.35, nextZoom));
+      applyWorkflowViewport();
+      renderWorkflowEdges();
+    }
+
+    function deriveWorkflowTransitions() {
+      var nodesById = {};
+      var outgoingByNode = {};
+      var transitions = {};
+
+      workflowState.nodes.forEach(function (node) {
+        nodesById[node.id] = node;
+        outgoingByNode[node.id] = [];
+      });
+
+      workflowState.edges.forEach(function (edge) {
+        if (outgoingByNode[edge.source]) {
+          outgoingByNode[edge.source].push(edge.target);
+        }
+      });
+
+      workflowState.nodes.forEach(function (node) {
+        if (node.type !== "process") {
+          return;
+        }
+
+        var nextStatuses = [];
+
+        outgoingByNode[node.id].forEach(function (targetId) {
+          var targetNode = nodesById[targetId];
+          if (!targetNode) {
+            return;
+          }
+
+          if (targetNode.type === "process") {
+            nextStatuses.push(targetNode.label);
+          }
+
+        });
+
+        transitions[node.label] = Array.from(new Set(nextStatuses));
+      });
+
+      return transitions;
+    }
+
+    function renderDerivedStatuses() {
+      var transitions = deriveWorkflowTransitions();
+      workflowDerived.innerHTML = "";
+      var label = document.createElement("span");
+      label.className = "workflow-derived-label";
+      label.textContent = "Allowed transitions";
+      workflowDerived.appendChild(label);
+      Object.keys(transitions).forEach(function (status) {
+        if (!transitions[status].length) {
+          var terminalPill = document.createElement("span");
+          terminalPill.className = "workflow-derived-pill";
+          terminalPill.textContent = status + " -> No next status";
+          workflowDerived.appendChild(terminalPill);
+          return;
+        }
+        transitions[status].forEach(function (nextStatus) {
+          var pill = document.createElement("span");
+          pill.className = "workflow-derived-pill";
+          pill.textContent = status + " -> " + nextStatus;
+          workflowDerived.appendChild(pill);
+        });
+      });
+    }
+
+    workflowEditor.querySelector("[data-workflow-add-process]").addEventListener("click", function () {
+      addWorkflowNode();
+    });
+
+    workflowEditor.querySelector("[data-workflow-save]").addEventListener("click", saveWorkflow);
+    workflowEditor.querySelector("[data-workflow-clear]").addEventListener("click", clearWorkflow);
+    workflowEditor.querySelector("[data-workflow-delete]").addEventListener("click", deleteSelectedWorkflowItem);
+    workflowEditor.querySelector("[data-workflow-zoom-in]").addEventListener("click", function (event) {
+      event.stopPropagation();
+      setWorkflowZoom(workflowZoom + 0.1);
+    });
+    workflowEditor.querySelector("[data-workflow-zoom-out]").addEventListener("click", function (event) {
+      event.stopPropagation();
+      setWorkflowZoom(workflowZoom - 0.1);
+    });
+
+    workflowCanvas.addEventListener("pointerdown", startWorkflowCanvasPointerDown);
+
+    workflowCanvas.addEventListener("click", function (event) {
+      if (suppressWorkflowCanvasClick) {
+        return;
+      }
+      if (event.target === workflowCanvas || event.target === workflowEdgeLayer) {
+        clearWorkflowSelection();
+      }
+    });
+
+    workflowCanvas.addEventListener("dblclick", function (event) {
+      if (event.target.closest(".workflow-node") || event.target.closest("[data-edge-id]") || event.target.closest(".workflow-zoom-controls")) {
+        return;
+      }
+      event.preventDefault();
+      isWorkflowPanMode = !isWorkflowPanMode;
+      updateWorkflowPanMode();
+      setWorkflowMessage(isWorkflowPanMode ? "Pan mode. Double-click to select." : "Tip: double-click empty canvas to pan.", isWorkflowPanMode ? "hint" : "hint");
+    });
+
+    workflowCanvas.addEventListener("keydown", function (event) {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelectedWorkflowItem();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      var activeElement = document.activeElement;
+      var isTyping = activeElement && (
+        activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.isContentEditable
+      );
+      if (event.code === "Space" && isTyping) {
+        return;
+      }
+      if (event.code === "Space" && activeElement !== document.body && !workflowEditor.contains(activeElement)) {
+        return;
+      }
+      if (event.code === "Space" && !event.repeat) {
+        event.preventDefault();
+        isWorkflowSpaceDown = true;
+        updateWorkflowPanMode();
+      }
+    });
+
+    document.addEventListener("keyup", function (event) {
+      if (event.code === "Space") {
+        isWorkflowSpaceDown = false;
+        updateWorkflowPanMode();
+      }
+    });
+
+    loadWorkflow();
+    renderWorkflow();
   }
 
   document.querySelectorAll("[data-demo-form]").forEach(function (form) {
