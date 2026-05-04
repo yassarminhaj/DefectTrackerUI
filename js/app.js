@@ -10,6 +10,84 @@
     navTarget = "defect_list.html";
   }
 
+  var loaderMessages = {
+    "dashboard.html": "Preparing dashboard...",
+    "defect_list.html": "Loading defects...",
+    "defect_create.html": "Reading source...",
+    "defect_detail.html": "Loading defects...",
+    "projects.html": "Reading source...",
+    "users.html": "Reading source...",
+    "environments.html": "Reading source...",
+    "status_workflow.html": "Checking workflow...",
+    "reports.html": "Preparing dashboard...",
+    "login.html": "Reading source..."
+  };
+  var loaderMessageList = ["Reading source...", "Loading defects...", "Preparing dashboard...", "Checking workflow...", "Almost there..."];
+  var loaderMessageIndex = 0;
+  var loaderActiveCount = 0;
+  var loaderStartedAt = 0;
+  var loaderTimer = null;
+  var loader = document.createElement("div");
+  var loaderText = document.createElement("p");
+
+  loader.className = "dt-loader";
+  loader.setAttribute("role", "status");
+  loader.setAttribute("aria-live", "polite");
+  loader.innerHTML = '<div class="dt-loader-panel"><div class="dt-loader-mark">DT</div><p class="dt-loader-text"></p><div class="dt-loader-bar"></div></div>';
+  loaderText = loader.querySelector(".dt-loader-text");
+  document.body.appendChild(loader);
+
+  function showLoader(message) {
+    loaderActiveCount += 1;
+    loaderStartedAt = loaderStartedAt || Date.now();
+    loaderText.textContent = message || loaderMessages[current] || loaderMessageList[loaderMessageIndex % loaderMessageList.length];
+    loader.classList.add("is-visible");
+    window.clearInterval(loaderTimer);
+    loaderTimer = window.setInterval(function () {
+      loaderMessageIndex += 1;
+      loaderText.textContent = loaderMessageList[loaderMessageIndex % loaderMessageList.length];
+    }, 1100);
+  }
+
+  function hideLoader() {
+    loaderActiveCount = Math.max(0, loaderActiveCount - 1);
+    if (loaderActiveCount > 0) {
+      return;
+    }
+    var elapsed = Date.now() - loaderStartedAt;
+    window.setTimeout(function () {
+      loader.classList.remove("is-visible");
+      window.clearInterval(loaderTimer);
+      loaderStartedAt = 0;
+    }, Math.max(0, 520 - elapsed));
+  }
+
+  window.DefectTrackerLoader = {
+    show: showLoader,
+    hide: hideLoader,
+    withLoading: function (task, message) {
+      showLoader(message);
+      return Promise.resolve()
+        .then(task)
+        .finally(hideLoader);
+    }
+  };
+
+  if (window.fetch) {
+    var nativeFetch = window.fetch.bind(window);
+    window.fetch = function () {
+      showLoader("Reading source...");
+      return nativeFetch.apply(null, arguments).finally(hideLoader);
+    };
+  }
+
+  showLoader(loaderMessages[current]);
+  if (document.readyState === "complete") {
+    hideLoader();
+  } else {
+    window.addEventListener("load", hideLoader, { once: true });
+  }
+
   var appShell = document.querySelector(".app-shell");
   var sidebar = document.querySelector(".sidebar");
   var sidebarToggle = document.querySelector("[data-sidebar-toggle]");
@@ -170,6 +248,30 @@
     });
   }
 
+  document.querySelectorAll("[data-tabs]").forEach(function (tabs) {
+    var buttons = Array.prototype.slice.call(tabs.querySelectorAll("[data-tab-target]"));
+    var panels = Array.prototype.slice.call(tabs.querySelectorAll("[data-tab-panel]"));
+
+    buttons.forEach(function (button) {
+      button.setAttribute("aria-selected", button.classList.contains("active") ? "true" : "false");
+      button.addEventListener("click", function () {
+        var target = button.getAttribute("data-tab-target");
+
+        buttons.forEach(function (item) {
+          var isActive = item === button;
+          item.classList.toggle("active", isActive);
+          item.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        panels.forEach(function (panel) {
+          var isActive = panel.getAttribute("data-tab-panel") === target;
+          panel.classList.toggle("active", isActive);
+          panel.hidden = !isActive;
+        });
+      });
+    });
+  });
+
   var dashboardTableBody = document.querySelector("[data-dashboard-table-body]");
   var chartGrid = document.querySelector("[data-chart-grid]");
   var chartModal = document.querySelector("[data-chart-modal]");
@@ -187,6 +289,9 @@
       { id: "DF-1066", title: "Assigned again defects do not notify developers", project: "Billing Core", environment: "UAT", severity: "Medium", priority: "P2", status: "Assigned Again", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-26" },
       { id: "DF-1070", title: "Configuration label is reported as a defect", project: "Mobile QA", environment: "UAT", severity: "Low", priority: "P4", status: "Not a Defect", assignedTo: "Omar Salem", releaseVersion: "2026.02", createdDate: "2026-04-27" }
     ];
+    defectRecords.forEach(function (record) {
+      record.createdBy = record.createdBy || "qa.user";
+    });
     var tableFilters = Array.prototype.slice.call(document.querySelectorAll("[data-table-filter]"));
     var resultCount = document.querySelector("[data-dashboard-result-count]");
     var openChartButton = document.querySelector("[data-open-chart-modal]");
@@ -287,6 +392,7 @@
         row.appendChild(statusCell);
         appendTextCell(row, record.assignedTo);
         appendTextCell(row, record.releaseVersion);
+        appendTextCell(row, record.createdBy);
         appendTextCell(row, record.createdDate);
         dashboardTableBody.appendChild(row);
       });
@@ -546,6 +652,9 @@
       { id: "DF-1090", title: "Critical production issue cannot be reassigned", project: "Billing Core", environment: "PROD", severity: "Critical", priority: "P1", status: "In Progress", assignedTo: "Leena Faris", releaseVersion: "2026.05", createdDate: "2026-04-30" },
       { id: "DF-1094", title: "Retest result saves without attachment evidence", project: "Mobile QA", environment: "UAT", severity: "High", priority: "P2", status: "Retest", assignedTo: "Fahad Noor", releaseVersion: "2026.05", createdDate: "2026-04-30" }
     ];
+    reportRecords.forEach(function (record) {
+      record.createdBy = record.createdBy || "qa.user";
+    });
     var reportFilters = Array.prototype.slice.call(document.querySelectorAll("[data-report-filter]"));
     var reportResultCount = document.querySelector("[data-report-result-count]");
     var reportFilterPanel = document.querySelector(".dashboard-filter-panel");
@@ -657,7 +766,7 @@
         if (filters.from && record.createdDate < filters.from) return false;
         if (filters.to && record.createdDate > filters.to) return false;
         if (search) {
-          var searchable = [record.id, record.title, record.project, record.environment, record.status, record.severity, record.priority, record.assignedTo, record.releaseVersion].join(" ").toLowerCase();
+          var searchable = [record.id, record.title, record.project, record.environment, record.status, record.severity, record.priority, record.assignedTo, record.createdBy, record.releaseVersion].join(" ").toLowerCase();
           if (searchable.indexOf(search) === -1) return false;
         }
         return true;
@@ -977,6 +1086,7 @@
         row.appendChild(statusCell);
         appendReportCell(row, record.assignedTo);
         appendReportCell(row, record.releaseVersion);
+        appendReportCell(row, record.createdBy);
         appendReportCell(row, record.createdDate);
         appendReportCell(row, record.age + "d");
         reportTableBody.appendChild(row);
@@ -985,7 +1095,7 @@
       if (!rows.length) {
         var emptyRow = document.createElement("tr");
         var emptyCell = document.createElement("td");
-        emptyCell.colSpan = 11;
+        emptyCell.colSpan = 12;
         emptyCell.className = "chart-empty";
         emptyCell.textContent = "No defects match the current dashboard filters.";
         emptyRow.appendChild(emptyCell);
@@ -1022,7 +1132,7 @@
 
     function exportReportCsv() {
       var rows = getFilteredReportRecords();
-      var columns = ["id", "title", "project", "environment", "severity", "priority", "status", "assignedTo", "releaseVersion", "createdDate", "age"];
+      var columns = ["id", "title", "project", "environment", "severity", "priority", "status", "assignedTo", "releaseVersion", "createdBy", "createdDate", "age"];
       var escapeCell = function (value) {
         var text = String(value == null ? "" : value).replace(/"/g, '""');
         return /[",\n]/.test(text) ? '"' + text + '"' : text;
@@ -1309,6 +1419,128 @@
     var saveProjectButton = addProjectRow.querySelector("[data-save-project]");
     var cancelProjectButton = addProjectRow.querySelector("[data-cancel-project]");
 
+    function getProjectBadgeClass(status) {
+      return status === "Active" ? "badge-active" : "badge-inactive";
+    }
+
+    function createProjectEditButton() {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Edit";
+      button.setAttribute("data-edit-project", "");
+      return button;
+    }
+
+    function getProjectRowData(row) {
+      return {
+        name: row.cells[0].textContent.trim(),
+        description: row.cells[1].textContent.trim(),
+        status: row.cells[2].textContent.trim() || "Active"
+      };
+    }
+
+    function renderProjectRow(row, data) {
+      var badge = document.createElement("span");
+      row.classList.remove("inline-edit-row");
+      row.dataset.originalProject = "";
+      row.cells[0].classList.remove("table-edit-cell");
+      row.cells[1].classList.remove("table-edit-cell");
+      row.cells[0].textContent = data.name;
+      row.cells[1].textContent = data.description || "No description added.";
+      badge.className = "badge " + getProjectBadgeClass(data.status);
+      badge.textContent = data.status;
+      row.cells[2].replaceChildren(badge);
+      row.cells[3].replaceChildren(createProjectEditButton());
+    }
+
+    function startProjectRowEdit(row) {
+      if (row.classList.contains("inline-edit-row") || row === addProjectRow) {
+        return;
+      }
+
+      var data = getProjectRowData(row);
+      var nameInput = document.createElement("input");
+      var descriptionInput = document.createElement("input");
+      var statusToggle = document.createElement("div");
+      var activeButton = document.createElement("button");
+      var inactiveButton = document.createElement("button");
+      var actions = document.createElement("div");
+      var saveButton = document.createElement("button");
+      var cancelButton = document.createElement("button");
+
+      row.dataset.originalProject = JSON.stringify(data);
+      row.classList.add("inline-edit-row");
+
+      nameInput.type = "text";
+      nameInput.className = "table-edit-input";
+      nameInput.value = data.name;
+      descriptionInput.type = "text";
+      descriptionInput.className = "table-edit-input";
+      descriptionInput.value = data.description === "No description added." ? "" : data.description;
+      row.cells[0].classList.add("table-edit-cell");
+      row.cells[1].classList.add("table-edit-cell");
+
+      statusToggle.className = "table-status-toggle";
+      statusToggle.setAttribute("data-project-edit-status", data.status);
+      activeButton.type = "button";
+      activeButton.textContent = "Active";
+      activeButton.setAttribute("data-status-option", "Active");
+      inactiveButton.type = "button";
+      inactiveButton.textContent = "Inactive";
+      inactiveButton.setAttribute("data-status-option", "Inactive");
+      statusToggle.appendChild(activeButton);
+      statusToggle.appendChild(inactiveButton);
+      updateProjectStatusToggle(statusToggle, data.status);
+
+      actions.className = "row-actions";
+      saveButton.type = "button";
+      saveButton.className = "button-primary";
+      saveButton.textContent = "Save";
+      saveButton.setAttribute("data-save-project-edit", "");
+      cancelButton.type = "button";
+      cancelButton.textContent = "Cancel";
+      cancelButton.setAttribute("data-cancel-project-edit", "");
+      actions.appendChild(saveButton);
+      actions.appendChild(cancelButton);
+
+      row.cells[0].replaceChildren(nameInput);
+      row.cells[1].replaceChildren(descriptionInput);
+      row.cells[2].replaceChildren(statusToggle);
+      row.cells[3].replaceChildren(actions);
+      nameInput.focus();
+      nameInput.select();
+    }
+
+    function updateProjectStatusToggle(toggle, status) {
+      toggle.setAttribute("data-project-edit-status", status);
+      Array.prototype.slice.call(toggle.querySelectorAll("[data-status-option]")).forEach(function (button) {
+        button.classList.toggle("active", button.getAttribute("data-status-option") === status);
+      });
+    }
+
+    function saveProjectRowEdit(row) {
+      var nameInput = row.cells[0].querySelector("input");
+      var descriptionInput = row.cells[1].querySelector("input");
+      var statusToggle = row.cells[2].querySelector("[data-project-edit-status]");
+      var name = nameInput.value.trim();
+
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+
+      renderProjectRow(row, {
+        name: name,
+        description: descriptionInput.value.trim(),
+        status: statusToggle.getAttribute("data-project-edit-status") || "Active"
+      });
+    }
+
+    function cancelProjectRowEdit(row) {
+      var data = row.dataset.originalProject ? JSON.parse(row.dataset.originalProject) : getProjectRowData(row);
+      renderProjectRow(row, data);
+    }
+
     function resetProjectRow() {
       projectNameInput.value = "";
       projectDescriptionInput.value = "";
@@ -1347,24 +1579,20 @@
         return;
       }
 
-      var badgeClass = status === "Active" ? "badge-active" : "badge-inactive";
       var row = document.createElement("tr");
       var nameCell = document.createElement("td");
       var descriptionCell = document.createElement("td");
       var statusCell = document.createElement("td");
       var actionsCell = document.createElement("td");
       var badge = document.createElement("span");
-      var editButton = document.createElement("button");
 
       nameCell.textContent = name;
       descriptionCell.textContent = description || "No description added.";
-      badge.className = "badge " + badgeClass;
+      badge.className = "badge " + getProjectBadgeClass(status);
       badge.textContent = status;
-      editButton.type = "button";
-      editButton.textContent = "Edit";
 
       statusCell.appendChild(badge);
-      actionsCell.appendChild(editButton);
+      actionsCell.appendChild(createProjectEditButton());
       row.appendChild(nameCell);
       row.appendChild(descriptionCell);
       row.appendChild(statusCell);
@@ -1373,6 +1601,28 @@
       projectTableBody.insertBefore(row, addProjectRow.nextSibling);
       resetProjectRow();
       setProjectRowVisible(false);
+    });
+
+    projectTableBody.addEventListener("click", function (event) {
+      var editButton = event.target.closest("[data-edit-project]");
+      var saveButton = event.target.closest("[data-save-project-edit]");
+      var cancelButton = event.target.closest("[data-cancel-project-edit]");
+      var statusOption = event.target.closest("[data-status-option]");
+      var row = event.target.closest("tr");
+
+      if (!row) {
+        return;
+      }
+
+      if (editButton) {
+        startProjectRowEdit(row);
+      } else if (saveButton) {
+        saveProjectRowEdit(row);
+      } else if (cancelButton) {
+        cancelProjectRowEdit(row);
+      } else if (statusOption) {
+        updateProjectStatusToggle(statusOption.closest("[data-project-edit-status]"), statusOption.getAttribute("data-status-option"));
+      }
     });
   }
 
@@ -1395,12 +1645,141 @@
     var statusInput = addRow.querySelector(config.statusSelector);
     var saveButton = addRow.querySelector(config.save);
     var cancelButton = addRow.querySelector(config.cancel);
+    var editSelector = "[" + config.editAttribute + "]";
+    var originalDataKey = "original" + config.recordName.charAt(0).toUpperCase() + config.recordName.slice(1).replace(/\s+/g, "");
 
     function resetRow() {
       inputs.forEach(function (input) {
         input.element.value = "";
       });
       statusInput.value = "Active";
+    }
+
+    function getBadgeClass(status) {
+      return status === "Active" ? "badge-active" : "badge-inactive";
+    }
+
+    function createEditButton() {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Edit";
+      button.setAttribute(config.editAttribute, "");
+      return button;
+    }
+
+    function getRowData(row) {
+      var data = {};
+      inputs.forEach(function (input, index) {
+        data[input.key] = row.cells[index].textContent.trim();
+      });
+      data.status = row.cells[inputs.length].textContent.trim() || "Active";
+      return data;
+    }
+
+    function renderRow(row, data) {
+      var badge = document.createElement("span");
+      row.classList.remove("inline-edit-row");
+      row.dataset[originalDataKey] = "";
+      inputs.forEach(function (input, index) {
+        row.cells[index].classList.remove("table-edit-cell");
+        row.cells[index].textContent = data[input.key] || input.fallback;
+      });
+      badge.className = "badge " + getBadgeClass(data.status);
+      badge.textContent = data.status;
+      row.cells[inputs.length].replaceChildren(badge);
+      row.cells[inputs.length + 1].replaceChildren(createEditButton());
+    }
+
+    function updateStatusToggle(toggle, status) {
+      toggle.setAttribute("data-edit-status", status);
+      Array.prototype.slice.call(toggle.querySelectorAll("[data-status-option]")).forEach(function (button) {
+        button.classList.toggle("active", button.getAttribute("data-status-option") === status);
+      });
+    }
+
+    function createStatusToggle(status) {
+      var statusToggle = document.createElement("div");
+      var activeButton = document.createElement("button");
+      var inactiveButton = document.createElement("button");
+
+      statusToggle.className = "table-status-toggle";
+      statusToggle.setAttribute("data-edit-status", status);
+      activeButton.type = "button";
+      activeButton.textContent = "Active";
+      activeButton.setAttribute("data-status-option", "Active");
+      inactiveButton.type = "button";
+      inactiveButton.textContent = "Inactive";
+      inactiveButton.setAttribute("data-status-option", "Inactive");
+      statusToggle.appendChild(activeButton);
+      statusToggle.appendChild(inactiveButton);
+      updateStatusToggle(statusToggle, status);
+      return statusToggle;
+    }
+
+    function startRowEdit(row) {
+      if (row.classList.contains("inline-edit-row") || row === addRow) {
+        return;
+      }
+
+      var data = getRowData(row);
+      var statusToggle = createStatusToggle(data.status);
+      var actions = document.createElement("div");
+      var saveEditButton = document.createElement("button");
+      var cancelEditButton = document.createElement("button");
+
+      row.dataset[originalDataKey] = JSON.stringify(data);
+      row.classList.add("inline-edit-row");
+
+      inputs.forEach(function (input, index) {
+        var editInput = document.createElement("input");
+        editInput.type = input.type || "text";
+        editInput.className = "table-edit-input";
+        editInput.value = data[input.key] === input.fallback ? "" : data[input.key];
+        row.cells[index].classList.add("table-edit-cell");
+        row.cells[index].replaceChildren(editInput);
+      });
+
+      actions.className = "row-actions";
+      saveEditButton.type = "button";
+      saveEditButton.className = "button-primary";
+      saveEditButton.textContent = "Save";
+      saveEditButton.setAttribute("data-save-inline-edit", "");
+      cancelEditButton.type = "button";
+      cancelEditButton.textContent = "Cancel";
+      cancelEditButton.setAttribute("data-cancel-inline-edit", "");
+      actions.appendChild(saveEditButton);
+      actions.appendChild(cancelEditButton);
+
+      row.cells[inputs.length].replaceChildren(statusToggle);
+      row.cells[inputs.length + 1].replaceChildren(actions);
+
+      var firstInput = row.cells[0].querySelector("input");
+      firstInput.focus();
+      firstInput.select();
+    }
+
+    function saveRowEdit(row) {
+      var data = {};
+      var firstInput = row.cells[0].querySelector("input");
+      var statusToggle = row.cells[inputs.length].querySelector("[data-edit-status]");
+
+      inputs.forEach(function (input, index) {
+        var editInput = row.cells[index].querySelector("input");
+        data[input.key] = editInput.value.trim();
+      });
+
+      if (!data[inputs[0].key]) {
+        firstInput.focus();
+        return;
+      }
+
+      data.status = statusToggle.getAttribute("data-edit-status") || "Active";
+      renderRow(row, data);
+    }
+
+    function cancelRowEdit(row) {
+      var data = row.dataset[originalDataKey] ? JSON.parse(row.dataset[originalDataKey]) : getRowData(row);
+      renderRow(row, data);
     }
 
     function setRowVisible(isVisible) {
@@ -1446,30 +1825,48 @@
       }
 
       var status = statusInput.value;
-      var badgeClass = status === "Active" ? "badge-active" : "badge-inactive";
       var row = document.createElement("tr");
       var statusCell = document.createElement("td");
       var actionsCell = document.createElement("td");
       var badge = document.createElement("span");
-      var editButton = document.createElement("button");
 
       values.forEach(function (item) {
         appendCell(row, item.value || item.fallback);
       });
 
-      badge.className = "badge " + badgeClass;
+      badge.className = "badge " + getBadgeClass(status);
       badge.textContent = status;
-      editButton.type = "button";
-      editButton.textContent = "Edit";
 
       statusCell.appendChild(badge);
-      actionsCell.appendChild(editButton);
+      actionsCell.appendChild(createEditButton());
       row.appendChild(statusCell);
       row.appendChild(actionsCell);
 
       tableBody.insertBefore(row, addRow.nextSibling);
       resetRow();
       setRowVisible(false);
+    });
+
+    tableBody.addEventListener("click", function (event) {
+      var row = event.target.closest("tr");
+      var editButton = event.target.closest(editSelector);
+      var saveEditButton = event.target.closest("[data-save-inline-edit]");
+      var cancelEditButton = event.target.closest("[data-cancel-inline-edit]");
+      var statusOption = event.target.closest("[data-status-option]");
+
+      if (!row) {
+        return;
+      }
+
+      if (editButton) {
+        startRowEdit(row);
+      } else if (saveEditButton) {
+        saveRowEdit(row);
+      } else if (cancelEditButton) {
+        cancelRowEdit(row);
+      } else if (statusOption) {
+        updateStatusToggle(statusOption.closest("[data-edit-status]"), statusOption.getAttribute("data-status-option"));
+      }
     });
   }
 
@@ -1480,11 +1877,12 @@
     save: "[data-save-user]",
     cancel: "[data-cancel-user]",
     statusSelector: "[data-user-status]",
+    editAttribute: "data-edit-user",
     addLabel: "Add User",
     recordName: "user",
     inputs: [
       { key: "name", selector: "[data-user-name]", fallback: "Unnamed User" },
-      { key: "email", selector: "[data-user-email]", fallback: "No email added." },
+      { key: "email", selector: "[data-user-email]", fallback: "No email added.", type: "email" },
       { key: "username", selector: "[data-user-username]", fallback: "No username added." }
     ]
   });
@@ -1496,6 +1894,7 @@
     save: "[data-save-env]",
     cancel: "[data-cancel-env]",
     statusSelector: "[data-env-status]",
+    editAttribute: "data-edit-env",
     addLabel: "Add Environment",
     recordName: "environment",
     inputs: [

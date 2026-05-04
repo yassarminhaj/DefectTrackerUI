@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Create Defect | Defect Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/dt-icon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/dt-icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/dt-icon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/dt-icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/dt-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
@@ -41,6 +47,7 @@
             <div><label for="priority">Priority *</label><select id="priority"><option selected>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
             <div><label for="status">Status *</label><select id="status"><option>New</option><option selected>Assigned</option><option>In Progress</option><option>Fixed</option><option>Retest</option></select></div>
             <div><label for="assigned">Assigned To *</label><select id="assigned"><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option><option>Fahad Noor</option></select></div>
+            <div><label for="createdBy">Created By</label><input id="createdBy" type="text" value="qa.user" readonly aria-readonly="true"></div>
             <div><label for="release">Release Version</label><input id="release" type="text" value="2026.04"></div>
             <div><label for="deployment">Release Deployment Date</label><input id="deployment" type="date" value="2026-05-10"></div>
             <div class="span-2">

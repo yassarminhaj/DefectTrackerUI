@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Projects | Defect Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/dt-icon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/dt-icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/dt-icon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/dt-icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/dt-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
@@ -39,7 +45,7 @@
             <button class="add-project-button" type="button" data-add-row-trigger aria-label="Add project"><span>+</span> Add Project</button>
           </div>
           <div class="table-wrap">
-            <table class="management-table">
+            <table class="management-table record-table project-table">
               <thead>
                 <tr>
                   <th>Project Name</th>
@@ -65,10 +71,10 @@
                     </div>
                   </td>
                 </tr>
-                <tr><td>Claims Portal</td><td>Customer claim intake and processing workflow.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                <tr><td>Billing Core</td><td>Invoice, tax, and payment calculation services.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                <tr><td>Mobile QA</td><td>Mobile application regression and release testing.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                <tr><td>Legacy CRM</td><td>Legacy support and controlled maintenance.</td><td><span class="badge badge-inactive">Inactive</span></td><td><button>Edit</button></td></tr>
+                <tr><td>Claims Portal</td><td>Customer claim intake and processing workflow.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-project>Edit</button></td></tr>
+                <tr><td>Billing Core</td><td>Invoice, tax, and payment calculation services.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-project>Edit</button></td></tr>
+                <tr><td>Mobile QA</td><td>Mobile application regression and release testing.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-project>Edit</button></td></tr>
+                <tr><td>Legacy CRM</td><td>Legacy support and controlled maintenance.</td><td><span class="badge badge-inactive">Inactive</span></td><td><button type="button" data-edit-project>Edit</button></td></tr>
               </tbody>
             </table>
           </div>

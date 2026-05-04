@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Users | Defect Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/dt-icon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/dt-icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/dt-icon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/dt-icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/dt-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
@@ -39,7 +45,7 @@
             <button class="add-record-button" type="button" data-user-add-trigger aria-label="Add user"><span>+</span> Add User</button>
           </div>
             <div class="table-wrap">
-              <table class="management-table users-table">
+              <table class="management-table record-table users-table">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -67,10 +73,10 @@
                       </div>
                     </td>
                   </tr>
-                  <tr><td>Aisha Khan</td><td>aisha.khan@example.com</td><td>aisha.khan</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>Omar Salem</td><td>omar.salem@example.com</td><td>omar.salem</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>Leena Faris</td><td>leena.faris@example.com</td><td>leena.faris</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>Fahad Noor</td><td>fahad.noor@example.com</td><td>fahad.noor</td><td><span class="badge badge-inactive">Inactive</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>Aisha Khan</td><td>aisha.khan@example.com</td><td>aisha.khan</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
+                  <tr><td>Omar Salem</td><td>omar.salem@example.com</td><td>omar.salem</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
+                  <tr><td>Leena Faris</td><td>leena.faris@example.com</td><td>leena.faris</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
+                  <tr><td>Fahad Noor</td><td>fahad.noor@example.com</td><td>fahad.noor</td><td><span class="badge badge-inactive">Inactive</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
                 </tbody>
               </table>
             </div>

@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Defect Detail | Defect Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/dt-icon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/dt-icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/dt-icon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/dt-icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/dt-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
@@ -31,83 +37,111 @@
       </header>
       <section class="content">
         <section class="detail-hero">
-          <div>
-            <div class="meta-list"><strong>DF-1042</strong><span>Billing Core</span><span>UAT</span><span>Assigned to Aisha Khan</span></div>
+          <div class="detail-summary-main">
+            <div class="detail-kicker-row">
+              <div class="meta-list"><strong>DF-1042</strong><span>Billing Core</span><span>UAT</span><span>Assigned to Aisha Khan</span><span>Created by qa.user</span></div>
+              <div class="detail-badges">
+                <span class="badge badge-progress">In Progress</span>
+                <span class="badge badge-high">High Severity</span>
+                <span class="badge badge-danger">P1 Priority</span>
+              </div>
+            </div>
             <h2 class="detail-title">Invoice total mismatch after tax recalculation</h2>
-          </div>
-          <div class="meta-list">
-            <span class="badge badge-progress">In Progress</span>
-            <span class="badge badge-high">High Severity</span>
-            <span class="badge badge-danger">P1 Priority</span>
           </div>
           <div class="detail-controls">
             <div><label>Change Status</label><select><option>In Progress</option><option>Fixed</option><option>Developer Rejected</option><option>Assigned Again</option></select></div>
             <div><label>Reassign To</label><select><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option><option>Fahad Noor</option></select></div>
-            <button class="button-primary">Save Changes</button>
+            <button class="button-primary detail-save-button">Save Changes</button>
           </div>
         </section>
 
-        <div class="grid grid-2" style="margin-top:18px;">
-          <section class="card card-pad">
-            <h2 class="section-title">Defect Information</h2>
-            <dl class="info-list">
-              <div class="info-row"><dt class="info-label">Defect ID</dt><dd>DF-1042</dd></div>
-              <div class="info-row"><dt class="info-label">Title</dt><dd>Invoice total mismatch after tax recalculation</dd></div>
-              <div class="info-row"><dt class="info-label">Project</dt><dd>Billing Core</dd></div>
-              <div class="info-row"><dt class="info-label">Environment</dt><dd>UAT</dd></div>
-              <div class="info-row"><dt class="info-label">Module</dt><dd>Invoice Review</dd></div>
-              <div class="info-row"><dt class="info-label">Assigned To</dt><dd>Aisha Khan</dd></div>
-            </dl>
-          </section>
-          <section class="card card-pad">
-            <h2 class="section-title">Steps / Expected / Actual</h2>
-            <dl class="info-list">
-              <div class="info-row"><dt class="info-label">Steps</dt><dd>Open invoice review, recalculate tax, refresh payment review screen.</dd></div>
-              <div class="info-row"><dt class="info-label">Expected</dt><dd>Invoice total remains consistent after refresh.</dd></div>
-              <div class="info-row"><dt class="info-label">Actual</dt><dd>Invoice total changes by SAR 12.50 after refresh.</dd></div>
-            </dl>
-          </section>
-          <section class="card card-pad">
-            <h2 class="section-title">Release &amp; Dates</h2>
-            <dl class="info-list">
-              <div class="info-row"><dt class="info-label">Release Version</dt><dd>2026.04</dd></div>
-              <div class="info-row"><dt class="info-label">Release Deployment Date</dt><dd>2026-05-10</dd></div>
-              <div class="info-row"><dt class="info-label">Fix Date</dt><dd>-</dd></div>
-              <div class="info-row"><dt class="info-label">Closure Date</dt><dd>-</dd></div>
-            </dl>
-          </section>
-          <section class="card card-pad">
-            <h2 class="section-title">Attachments</h2>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>File</th><th>Type</th><th>Actions</th></tr></thead>
-                <tbody>
-                  <tr><td>invoice-before-refresh.png</td><td>Image</td><td><button>Download</button> <button data-preview="invoice-before-refresh.png">Preview</button></td></tr>
-                  <tr><td>uat-console.log</td><td>Log</td><td><button>Download</button> <button>Preview</button></td></tr>
-                  <tr><td>tax-rules.json</td><td>JSON</td><td><button>Download</button> <button>Preview</button></td></tr>
-                </tbody>
-              </table>
+        <section class="card detail-tabs-card" data-tabs>
+          <div class="card-header detail-card-header">
+            <h2>Defect Information</h2>
+            <div class="tab-list" role="tablist" aria-label="Defect information tabs">
+              <button class="tab-button active" type="button" data-tab-target="detail-general">General</button>
+              <button class="tab-button" type="button" data-tab-target="detail-execution">Execution Details</button>
+              <button class="tab-button" type="button" data-tab-target="detail-attachments">Attachments</button>
+              <button class="tab-button" type="button" data-tab-target="detail-release">Release</button>
             </div>
-          </section>
-          <section class="card card-pad">
-            <h2 class="section-title">Comments</h2>
-            <div class="comments">
-              <div class="comment"><strong>Omar Salem</strong><p>Confirmed in SIT and UAT. The calculation endpoint returns a different tax component after refresh.</p><div class="comment-meta">2026-04-22 10:14</div></div>
-              <div class="comment"><strong>Aisha Khan</strong><p>Investigating cached invoice summary versus recalculated values.</p><div class="comment-meta">2026-04-22 13:45</div></div>
-              <textarea placeholder="Add a comment"></textarea>
-              <button class="button-primary">Add Comment</button>
+          </div>
+          <div class="tab-panels">
+            <div class="tab-panel active" data-tab-panel="detail-general">
+              <dl class="info-list detail-info-grid">
+                <div class="info-row"><dt class="info-label">Defect ID</dt><dd>DF-1042</dd></div>
+                <div class="info-row"><dt class="info-label">Project</dt><dd>Billing Core</dd></div>
+                <div class="info-row"><dt class="info-label">Environment</dt><dd>UAT</dd></div>
+                <div class="info-row"><dt class="info-label">Module</dt><dd>Invoice Review</dd></div>
+                <div class="info-row"><dt class="info-label">Assigned To</dt><dd>Aisha Khan</dd></div>
+                <div class="info-row"><dt class="info-label">Created By</dt><dd>qa.user</dd></div>
+              </dl>
+              <div class="detail-description">
+                <h3>Description</h3>
+                <p>The invoice total changes after refreshing the payment review screen in UAT.</p>
+              </div>
             </div>
-          </section>
-          <section class="card card-pad">
-            <h2 class="section-title">History Timeline</h2>
-            <div class="timeline">
-              <div class="timeline-item"><strong>Status changed</strong><div>Assigned to In Progress</div><div class="timeline-meta">2026-04-22 13:40 by Aisha Khan</div></div>
-              <div class="timeline-item"><strong>Assignment changed</strong><div>Assigned to Aisha Khan</div><div class="timeline-meta">2026-04-21 16:05 by QA Lead</div></div>
-              <div class="timeline-item"><strong>Attachment uploaded</strong><div>invoice-before-refresh.png</div><div class="timeline-meta">2026-04-21 15:52 by Omar Salem</div></div>
-              <div class="timeline-item"><strong>Comment added</strong><div>Initial triage notes added</div><div class="timeline-meta">2026-04-21 15:48 by Omar Salem</div></div>
+
+            <div class="tab-panel" data-tab-panel="detail-execution" hidden>
+              <dl class="info-list execution-list">
+                <div class="info-row"><dt class="info-label">Steps</dt><dd>Open invoice review, recalculate tax, refresh payment review screen.</dd></div>
+                <div class="info-row"><dt class="info-label">Expected</dt><dd>Invoice total remains consistent after refresh.</dd></div>
+                <div class="info-row"><dt class="info-label">Actual</dt><dd>Invoice total changes by SAR 12.50 after refresh.</dd></div>
+              </dl>
             </div>
-          </section>
-        </div>
+
+            <div class="tab-panel" data-tab-panel="detail-attachments" hidden>
+              <div class="table-wrap">
+                <table class="management-table attachment-table">
+                  <thead><tr><th>File</th><th>Type</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    <tr><td>invoice-before-refresh.png</td><td>Image</td><td><button>Download</button> <button data-preview="invoice-before-refresh.png">Preview</button></td></tr>
+                    <tr><td>uat-console.log</td><td>Log</td><td><button>Download</button> <button>Preview</button></td></tr>
+                    <tr><td>tax-rules.json</td><td>JSON</td><td><button>Download</button> <button>Preview</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-panel" data-tab-panel="detail-release" hidden>
+              <dl class="info-list detail-info-grid">
+                <div class="info-row"><dt class="info-label">Release Version</dt><dd>2026.04</dd></div>
+                <div class="info-row"><dt class="info-label">Release Deployment Date</dt><dd>2026-05-10</dd></div>
+                <div class="info-row"><dt class="info-label">Fix Date</dt><dd>-</dd></div>
+                <div class="info-row"><dt class="info-label">Closure Date</dt><dd>-</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <section class="card detail-tabs-card" data-tabs>
+          <div class="card-header detail-card-header">
+            <h2>Collaboration &amp; Audit</h2>
+            <div class="tab-list" role="tablist" aria-label="Collaboration and audit tabs">
+              <button class="tab-button active" type="button" data-tab-target="detail-comments">Comments</button>
+              <button class="tab-button" type="button" data-tab-target="detail-history">History</button>
+            </div>
+          </div>
+          <div class="tab-panels">
+            <div class="tab-panel active" data-tab-panel="detail-comments">
+              <div class="comments">
+                <div class="comment"><strong>Omar Salem</strong><p>Confirmed in SIT and UAT. The calculation endpoint returns a different tax component after refresh.</p><div class="comment-meta">2026-04-22 10:14</div></div>
+                <div class="comment"><strong>Aisha Khan</strong><p>Investigating cached invoice summary versus recalculated values.</p><div class="comment-meta">2026-04-22 13:45</div></div>
+                <div class="comment-entry">
+                  <textarea placeholder="Add a comment"></textarea>
+                  <button class="button-primary">Add Comment</button>
+                </div>
+              </div>
+            </div>
+            <div class="tab-panel" data-tab-panel="detail-history" hidden>
+              <div class="timeline">
+                <div class="timeline-item"><strong>Status changed</strong><div>Assigned to In Progress</div><div class="timeline-meta">2026-04-22 13:40 by Aisha Khan</div></div>
+                <div class="timeline-item"><strong>Assignment changed</strong><div>Assigned to Aisha Khan</div><div class="timeline-meta">2026-04-21 16:05 by QA Lead</div></div>
+                <div class="timeline-item"><strong>Attachment uploaded</strong><div>invoice-before-refresh.png</div><div class="timeline-meta">2026-04-21 15:52 by Omar Salem</div></div>
+                <div class="timeline-item"><strong>Comment added</strong><div>Initial triage notes added</div><div class="timeline-meta">2026-04-21 15:48 by Omar Salem</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   </div>

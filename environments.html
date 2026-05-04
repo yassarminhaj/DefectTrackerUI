@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Environments | Defect Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/dt-icon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/dt-icon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/dt-icon-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/dt-icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/dt-icon-180.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css">
   <link rel="stylesheet" href="css/app.css">
@@ -39,7 +45,7 @@
             <button class="add-record-button" type="button" data-env-add-trigger aria-label="Add environment"><span>+</span> Add Environment</button>
           </div>
             <div class="table-wrap">
-              <table class="management-table">
+              <table class="management-table record-table environment-table">
                 <thead>
                   <tr>
                     <th>Environment Name</th>
@@ -65,11 +71,11 @@
                       </div>
                     </td>
                   </tr>
-                  <tr><td>DEV</td><td>Developer integration and early validation.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>SIT</td><td>System integration testing environment.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>UAT</td><td>User acceptance testing with business users.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>Pre-Prod</td><td>Production-like release validation.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
-                  <tr><td>PROD</td><td>Production defect tracking.</td><td><span class="badge badge-active">Active</span></td><td><button>Edit</button></td></tr>
+                  <tr><td>DEV</td><td>Developer integration and early validation.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-env>Edit</button></td></tr>
+                  <tr><td>SIT</td><td>System integration testing environment.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-env>Edit</button></td></tr>
+                  <tr><td>UAT</td><td>User acceptance testing with business users.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-env>Edit</button></td></tr>
+                  <tr><td>Pre-Prod</td><td>Production-like release validation.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-env>Edit</button></td></tr>
+                  <tr><td>PROD</td><td>Production defect tracking.</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-env>Edit</button></td></tr>
                 </tbody>
               </table>
             </div>
