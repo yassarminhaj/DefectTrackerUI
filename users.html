@@ -33,16 +33,16 @@
     <main class="main">
       <header class="topbar">
         <h1>Users</h1>
-        <span class="topbar-meta">Phase 1: same access for all users</span>
+        <span class="topbar-meta">Manage application users</span>
       </header>
       <section class="content">
         <section class="card management-card users-list-card">
           <div class="card-header management-header">
             <div>
               <h2>User List</h2>
-              <p class="management-subtitle">Add and maintain users inline. Role management is intentionally excluded in Phase 1.</p>
+              <p class="management-subtitle">Add users, update account status, and reset passwords</p>
             </div>
-            <button class="add-record-button" type="button" data-user-add-trigger aria-label="Add user"><span>+</span> Add User</button>
+            <button class="add-record-button" type="button" data-open-user-modal aria-label="Add user"><span>+</span> Add User</button>
           </div>
             <div class="table-wrap">
               <table class="management-table record-table users-table">
@@ -56,33 +56,95 @@
                   </tr>
                 </thead>
                 <tbody data-user-table-body>
-                  <tr class="inline-add-row" data-user-add-row hidden>
-                    <td><input data-user-name type="text" placeholder="Full name"></td>
-                    <td><input data-user-email type="email" placeholder="name@example.com"></td>
-                    <td><input data-user-username type="text" placeholder="username"></td>
-                    <td>
-                      <select data-user-status>
-                        <option>Active</option>
-                        <option>Inactive</option>
-                      </select>
-                    </td>
-                    <td>
-                      <div class="row-actions">
-                        <button class="button-primary" type="button" data-save-user>Save</button>
-                        <button type="button" data-cancel-user>Cancel</button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr><td>Aisha Khan</td><td>aisha.khan@example.com</td><td>aisha.khan</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
-                  <tr><td>Omar Salem</td><td>omar.salem@example.com</td><td>omar.salem</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
-                  <tr><td>Leena Faris</td><td>leena.faris@example.com</td><td>leena.faris</td><td><span class="badge badge-active">Active</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
-                  <tr><td>Fahad Noor</td><td>fahad.noor@example.com</td><td>fahad.noor</td><td><span class="badge badge-inactive">Inactive</span></td><td><button type="button" data-edit-user>Edit</button></td></tr>
+                  <tr><td>Aisha Khan</td><td>aisha.khan@example.com</td><td>aisha.khan</td><td><span class="badge badge-active">Active</span></td><td><div class="row-actions"><button type="button" data-edit-user>Edit</button><button type="button" data-reset-user-password>Password</button></div></td></tr>
+                  <tr><td>Omar Salem</td><td>omar.salem@example.com</td><td>omar.salem</td><td><span class="badge badge-active">Active</span></td><td><div class="row-actions"><button type="button" data-edit-user>Edit</button><button type="button" data-reset-user-password>Password</button></div></td></tr>
+                  <tr><td>Leena Faris</td><td>leena.faris@example.com</td><td>leena.faris</td><td><span class="badge badge-active">Active</span></td><td><div class="row-actions"><button type="button" data-edit-user>Edit</button><button type="button" data-reset-user-password>Password</button></div></td></tr>
+                  <tr><td>Fahad Noor</td><td>fahad.noor@example.com</td><td>fahad.noor</td><td><span class="badge badge-inactive">Inactive</span></td><td><div class="row-actions"><button type="button" data-edit-user>Edit</button><button type="button" data-reset-user-password>Password</button></div></td></tr>
                 </tbody>
               </table>
             </div>
         </section>
       </section>
     </main>
+  </div>
+  <div class="modal user-modal" id="userModal" aria-hidden="true">
+    <div class="modal-card user-modal-card" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+      <div class="modal-title-row">
+        <div>
+          <h2 id="userModalTitle">Add User</h2>
+          <p class="management-subtitle">Create the user and set the first password. Password is not shown after saving</p>
+        </div>
+        <button type="button" data-close-user-modal>Close</button>
+      </div>
+      <div class="user-form-grid">
+        <div>
+          <label for="modalUserName">Name</label>
+          <input id="modalUserName" type="text" data-modal-user-name placeholder="Full name">
+        </div>
+        <div>
+          <label for="modalUserEmail">Email</label>
+          <input id="modalUserEmail" type="email" data-modal-user-email placeholder="name@example.com">
+        </div>
+        <div>
+          <label for="modalUserUsername">Username</label>
+          <input id="modalUserUsername" type="text" data-modal-user-username placeholder="username">
+        </div>
+        <div>
+          <label for="modalUserStatus">Status</label>
+          <select id="modalUserStatus" data-modal-user-status>
+            <option>Active</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+        <div>
+          <label for="modalUserPassword">Password</label>
+          <input id="modalUserPassword" type="password" data-modal-user-password autocomplete="new-password">
+        </div>
+        <div>
+          <label for="modalUserConfirmPassword">Confirm Password</label>
+          <input id="modalUserConfirmPassword" type="password" data-modal-user-confirm autocomplete="new-password">
+        </div>
+      </div>
+      <p class="modal-message" data-user-message></p>
+      <div class="modal-actions">
+        <button type="button" data-close-user-modal>Cancel</button>
+        <button class="button-primary" type="button" data-save-modal-user>Save User</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal password-modal" id="passwordModal" aria-hidden="true">
+    <div class="modal-card password-modal-card" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+      <div class="modal-title-row">
+        <div>
+          <h2 id="passwordModalTitle">Reset Password</h2>
+          <p class="management-subtitle">Enter the previous password, then set and confirm a new password</p>
+        </div>
+        <button type="button" data-close-password-modal>Close</button>
+      </div>
+      <div class="password-user-summary">
+        <span>User</span>
+        <strong data-password-user-label>Selected user</strong>
+      </div>
+      <div class="password-form-grid">
+        <div>
+          <label for="previousPassword">Previous Password</label>
+          <input id="previousPassword" type="password" data-password-previous autocomplete="current-password">
+        </div>
+        <div>
+          <label for="newPassword">New Password</label>
+          <input id="newPassword" type="password" data-password-new autocomplete="new-password">
+        </div>
+        <div>
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" data-password-confirm autocomplete="new-password">
+        </div>
+      </div>
+      <p class="modal-message" data-password-message></p>
+      <div class="modal-actions">
+        <button type="button" data-close-password-modal>Cancel</button>
+        <button class="button-primary" type="button" data-commit-password>Commit Password</button>
+      </div>
+    </div>
   </div>
   <script src="js/app.js"></script>
 </body>

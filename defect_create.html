@@ -239,10 +239,12 @@
             }
 
             event.preventDefault();
+            const insertPosition = view.state.selection.from;
 
-            imageItems.forEach((item) => {
+            imageItems.forEach((item, index) => {
               const file = item.getAsFile();
               if (!file) return;
+              const itemInsertPosition = insertPosition + index;
 
               const reader = new FileReader();
               reader.onload = () => {
@@ -260,8 +262,10 @@
                   editor
                     .chain()
                     .focus()
-                    .setImage(attrs)
-                    .createParagraphNear()
+                    .insertContentAt(itemInsertPosition, [
+                      { type: "image", attrs },
+                      { type: "paragraph" },
+                    ], { updateSelection: true })
                     .run();
                 }
 

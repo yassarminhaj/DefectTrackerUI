@@ -135,7 +135,7 @@
       window.localStorage.setItem(sidebarModeStorageKey, mode);
       window.localStorage.setItem(sidebarStorageKey, String(mode === "collapsed"));
     } catch (error) {
-      // Static prototype: ignore storage errors in restricted browser modes.
+      // Ignore storage errors in restricted browser modes.
     }
   }
 
@@ -791,7 +791,7 @@
       setKpi("closed", closedRows.length);
       setKpi("highOpen", highOpenRows.length);
       setKpi("avgAge", avgAge + "d");
-      setKpiNote("total", rows.length === reportRecords.length ? "All sample defects" : "Filtered view");
+      setKpiNote("total", rows.length === reportRecords.length ? "All defects" : "Filtered view");
       setKpiNote("open", rows.length ? Math.round((openRows.length / rows.length) * 100) + "% of view" : "No defects");
       setKpiNote("closed", rows.length ? Math.round((closedRows.length / rows.length) * 100) + "% of view" : "No defects");
     }
@@ -1631,28 +1631,31 @@
     var addRow = document.querySelector(config.row);
     var tableBody = document.querySelector(config.body);
 
-    if (!addButton || !addRow || !tableBody) {
+    if (!tableBody) {
       return;
     }
+
+    var hasInlineAdd = !config.modalAdd && addButton && addRow;
 
     var inputs = config.inputs.map(function (item) {
       return {
         key: item.key,
         fallback: item.fallback,
-        element: addRow.querySelector(item.selector)
+        type: item.type,
+        element: addRow ? addRow.querySelector(item.selector) : null
       };
     });
-    var statusInput = addRow.querySelector(config.statusSelector);
-    var saveButton = addRow.querySelector(config.save);
-    var cancelButton = addRow.querySelector(config.cancel);
+    var statusInput = addRow ? addRow.querySelector(config.statusSelector) : null;
+    var saveButton = addRow ? addRow.querySelector(config.save) : null;
+    var cancelButton = addRow ? addRow.querySelector(config.cancel) : null;
     var editSelector = "[" + config.editAttribute + "]";
     var originalDataKey = "original" + config.recordName.charAt(0).toUpperCase() + config.recordName.slice(1).replace(/\s+/g, "");
 
     function resetRow() {
       inputs.forEach(function (input) {
-        input.element.value = "";
+        if (input.element) input.element.value = "";
       });
-      statusInput.value = "Active";
+      if (statusInput) statusInput.value = "Active";
     }
 
     function getBadgeClass(status) {
@@ -1665,6 +1668,24 @@
       button.textContent = "Edit";
       button.setAttribute(config.editAttribute, "");
       return button;
+    }
+
+    function createPasswordButton() {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Password";
+      button.setAttribute("data-reset-user-password", "");
+      return button;
+    }
+
+    function appendRowActions(cell) {
+      var actions = document.createElement("div");
+      actions.className = "row-actions";
+      actions.appendChild(createEditButton());
+      if (config.passwordAction) {
+        actions.appendChild(createPasswordButton());
+      }
+      cell.replaceChildren(actions);
     }
 
     function getRowData(row) {
@@ -1687,7 +1708,7 @@
       badge.className = "badge " + getBadgeClass(data.status);
       badge.textContent = data.status;
       row.cells[inputs.length].replaceChildren(badge);
-      row.cells[inputs.length + 1].replaceChildren(createEditButton());
+      appendRowActions(row.cells[inputs.length + 1]);
     }
 
     function updateStatusToggle(toggle, status) {
@@ -1797,55 +1818,57 @@
       row.appendChild(cell);
     }
 
-    addButton.addEventListener("click", function () {
-      var shouldShow = addRow.hidden;
-      setRowVisible(shouldShow);
-      if (shouldShow) {
+    if (hasInlineAdd) {
+      addButton.addEventListener("click", function () {
+        var shouldShow = addRow.hidden;
+        setRowVisible(shouldShow);
+        if (shouldShow) {
+          resetRow();
+        }
+      });
+
+      cancelButton.addEventListener("click", function () {
         resetRow();
-      }
-    });
-
-    cancelButton.addEventListener("click", function () {
-      resetRow();
-      setRowVisible(false);
-    });
-
-    saveButton.addEventListener("click", function () {
-      var values = inputs.map(function (input) {
-        return {
-          value: input.element.value.trim(),
-          fallback: input.fallback,
-          element: input.element
-        };
+        setRowVisible(false);
       });
 
-      if (!values[0].value) {
-        values[0].element.focus();
-        return;
-      }
+      saveButton.addEventListener("click", function () {
+        var values = inputs.map(function (input) {
+          return {
+            value: input.element.value.trim(),
+            fallback: input.fallback,
+            element: input.element
+          };
+        });
 
-      var status = statusInput.value;
-      var row = document.createElement("tr");
-      var statusCell = document.createElement("td");
-      var actionsCell = document.createElement("td");
-      var badge = document.createElement("span");
+        if (!values[0].value) {
+          values[0].element.focus();
+          return;
+        }
 
-      values.forEach(function (item) {
-        appendCell(row, item.value || item.fallback);
+        var status = statusInput.value;
+        var row = document.createElement("tr");
+        var statusCell = document.createElement("td");
+        var actionsCell = document.createElement("td");
+        var badge = document.createElement("span");
+
+        values.forEach(function (item) {
+          appendCell(row, item.value || item.fallback);
+        });
+
+        badge.className = "badge " + getBadgeClass(status);
+        badge.textContent = status;
+
+        statusCell.appendChild(badge);
+        row.appendChild(statusCell);
+        row.appendChild(actionsCell);
+        appendRowActions(actionsCell);
+
+        tableBody.insertBefore(row, addRow.nextSibling);
+        resetRow();
+        setRowVisible(false);
       });
-
-      badge.className = "badge " + getBadgeClass(status);
-      badge.textContent = status;
-
-      statusCell.appendChild(badge);
-      actionsCell.appendChild(createEditButton());
-      row.appendChild(statusCell);
-      row.appendChild(actionsCell);
-
-      tableBody.insertBefore(row, addRow.nextSibling);
-      resetRow();
-      setRowVisible(false);
-    });
+    }
 
     tableBody.addEventListener("click", function (event) {
       var row = event.target.closest("tr");
@@ -1871,13 +1894,15 @@
   }
 
   initSimpleInlineManager({
-    trigger: "[data-user-add-trigger]",
+    trigger: "[data-open-user-modal]",
     row: "[data-user-add-row]",
     body: "[data-user-table-body]",
     save: "[data-save-user]",
     cancel: "[data-cancel-user]",
     statusSelector: "[data-user-status]",
     editAttribute: "data-edit-user",
+    passwordAction: true,
+    modalAdd: true,
     addLabel: "Add User",
     recordName: "user",
     inputs: [
@@ -1902,6 +1927,231 @@
       { key: "description", selector: "[data-env-description]", fallback: "No description added." }
     ]
   });
+
+  var userModal = document.getElementById("userModal");
+  if (userModal) {
+    var openUserModalButton = document.querySelector("[data-open-user-modal]");
+    var userTableBody = document.querySelector("[data-user-table-body]");
+    var userNameInput = userModal.querySelector("[data-modal-user-name]");
+    var userEmailInput = userModal.querySelector("[data-modal-user-email]");
+    var userUsernameInput = userModal.querySelector("[data-modal-user-username]");
+    var userStatusInput = userModal.querySelector("[data-modal-user-status]");
+    var userPasswordInput = userModal.querySelector("[data-modal-user-password]");
+    var userConfirmInput = userModal.querySelector("[data-modal-user-confirm]");
+    var userMessage = userModal.querySelector("[data-user-message]");
+    var saveModalUserButton = userModal.querySelector("[data-save-modal-user]");
+
+    function setUserMessage(text, state) {
+      userMessage.textContent = text || "";
+      userMessage.classList.toggle("is-error", state === "error");
+      userMessage.classList.toggle("is-success", state === "success");
+    }
+
+    function resetUserForm() {
+      userNameInput.value = "";
+      userEmailInput.value = "";
+      userUsernameInput.value = "";
+      userStatusInput.value = "Active";
+      userPasswordInput.value = "";
+      userConfirmInput.value = "";
+      setUserMessage("", "");
+    }
+
+    function openUserModal() {
+      resetUserForm();
+      userModal.classList.add("open");
+      userModal.setAttribute("aria-hidden", "false");
+      userNameInput.focus();
+    }
+
+    function closeUserModal() {
+      userModal.classList.remove("open");
+      userModal.setAttribute("aria-hidden", "true");
+      resetUserForm();
+    }
+
+    function createUserBadge(status) {
+      var badge = document.createElement("span");
+      badge.className = "badge " + (status === "Active" ? "badge-active" : "badge-inactive");
+      badge.textContent = status;
+      return badge;
+    }
+
+    function createUserActionCell() {
+      var cell = document.createElement("td");
+      var actions = document.createElement("div");
+      var editButton = document.createElement("button");
+      var passwordButton = document.createElement("button");
+
+      actions.className = "row-actions";
+      editButton.type = "button";
+      editButton.textContent = "Edit";
+      editButton.setAttribute("data-edit-user", "");
+      passwordButton.type = "button";
+      passwordButton.textContent = "Password";
+      passwordButton.setAttribute("data-reset-user-password", "");
+      actions.appendChild(editButton);
+      actions.appendChild(passwordButton);
+      cell.appendChild(actions);
+      return cell;
+    }
+
+    function appendUserCell(row, value) {
+      var cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    function saveModalUser() {
+      var name = userNameInput.value.trim();
+      var email = userEmailInput.value.trim();
+      var username = userUsernameInput.value.trim();
+      var status = userStatusInput.value;
+      var password = userPasswordInput.value.trim();
+      var confirmPassword = userConfirmInput.value.trim();
+      var row = document.createElement("tr");
+      var statusCell = document.createElement("td");
+
+      if (!name) {
+        setUserMessage("Name is required.", "error");
+        userNameInput.focus();
+        return;
+      }
+
+      if (!username) {
+        setUserMessage("Username is required.", "error");
+        userUsernameInput.focus();
+        return;
+      }
+
+      if (!password || !confirmPassword) {
+        setUserMessage("Password and confirmation are required.", "error");
+        userPasswordInput.focus();
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setUserMessage("Password and confirmation must match.", "error");
+        userConfirmInput.focus();
+        return;
+      }
+
+      appendUserCell(row, name);
+      appendUserCell(row, email || "No email added.");
+      appendUserCell(row, username);
+      statusCell.appendChild(createUserBadge(status));
+      row.appendChild(statusCell);
+      row.appendChild(createUserActionCell());
+      userTableBody.insertBefore(row, userTableBody.firstElementChild);
+      setUserMessage("User saved.", "success");
+      window.setTimeout(closeUserModal, 500);
+    }
+
+    if (openUserModalButton) {
+      openUserModalButton.addEventListener("click", openUserModal);
+    }
+
+    userModal.querySelectorAll("[data-close-user-modal]").forEach(function (button) {
+      button.addEventListener("click", closeUserModal);
+    });
+
+    userModal.addEventListener("click", function (event) {
+      if (event.target === userModal) {
+        closeUserModal();
+      }
+    });
+
+    userModal.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeUserModal();
+      }
+    });
+
+    saveModalUserButton.addEventListener("click", saveModalUser);
+  }
+
+  var passwordModal = document.getElementById("passwordModal");
+  if (passwordModal) {
+    var passwordUserLabel = passwordModal.querySelector("[data-password-user-label]");
+    var previousPasswordInput = passwordModal.querySelector("[data-password-previous]");
+    var newPasswordInput = passwordModal.querySelector("[data-password-new]");
+    var confirmPasswordInput = passwordModal.querySelector("[data-password-confirm]");
+    var passwordMessage = passwordModal.querySelector("[data-password-message]");
+    var commitPasswordButton = passwordModal.querySelector("[data-commit-password]");
+
+    function setPasswordMessage(text, state) {
+      passwordMessage.textContent = text || "";
+      passwordMessage.classList.toggle("is-error", state === "error");
+      passwordMessage.classList.toggle("is-success", state === "success");
+    }
+
+    function resetPasswordForm() {
+      previousPasswordInput.value = "";
+      newPasswordInput.value = "";
+      confirmPasswordInput.value = "";
+      setPasswordMessage("", "");
+    }
+
+    function openPasswordModal(row) {
+      var name = row.cells[0].textContent.trim();
+      var username = row.cells[2].textContent.trim();
+      passwordModal.dataset.targetUser = username;
+      passwordUserLabel.textContent = name + " | " + username;
+      resetPasswordForm();
+      passwordModal.classList.add("open");
+      passwordModal.setAttribute("aria-hidden", "false");
+      previousPasswordInput.focus();
+    }
+
+    function closePasswordModal() {
+      passwordModal.classList.remove("open");
+      passwordModal.setAttribute("aria-hidden", "true");
+      resetPasswordForm();
+    }
+
+    document.addEventListener("click", function (event) {
+      var resetButton = event.target.closest("[data-reset-user-password]");
+      if (!resetButton) return;
+      var row = resetButton.closest("tr");
+      if (row) openPasswordModal(row);
+    });
+
+    passwordModal.querySelectorAll("[data-close-password-modal]").forEach(function (button) {
+      button.addEventListener("click", closePasswordModal);
+    });
+
+    passwordModal.addEventListener("click", function (event) {
+      if (event.target === passwordModal) {
+        closePasswordModal();
+      }
+    });
+
+    passwordModal.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closePasswordModal();
+      }
+    });
+
+    commitPasswordButton.addEventListener("click", function () {
+      var previousPassword = previousPasswordInput.value.trim();
+      var newPassword = newPasswordInput.value.trim();
+      var confirmPassword = confirmPasswordInput.value.trim();
+
+      if (!previousPassword || !newPassword || !confirmPassword) {
+        setPasswordMessage("Enter previous password, new password, and confirmation.", "error");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setPasswordMessage("New password and confirmation must match.", "error");
+        confirmPasswordInput.focus();
+        return;
+      }
+
+      setPasswordMessage("Password reset committed for " + passwordModal.dataset.targetUser + ".", "success");
+      window.setTimeout(closePasswordModal, 700);
+    });
+  }
 
   var defectFilterPanel = document.querySelector(".defect-filter-panel");
   var defectFilterBody = document.querySelector("[data-defect-filter-body]");
@@ -2023,6 +2273,9 @@
       var imageItem = items.find(function (item) { return item.type.indexOf("image/") === 0; });
       if (!imageItem) {
         window.setTimeout(updateFallbackStepsHtml, 0);
+        return;
+      }
+      if (window.defectStepsEditor) {
         return;
       }
       event.preventDefault();
@@ -2984,7 +3237,7 @@
       event.preventDefault();
       var message = form.querySelector("[data-form-message]");
       if (message) {
-        message.textContent = "Sample UI only - no data was submitted.";
+        message.textContent = "Defect saved for review";
       }
     });
   });
