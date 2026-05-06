@@ -32,7 +32,6 @@
     <main class="main">
       <header class="topbar">
         <h1>Create Defect</h1>
-        <span class="topbar-meta">Required fields are marked with *</span>
       </header>
       <section class="content">
         <form class="card card-pad" data-demo-form>
@@ -47,8 +46,6 @@
             <div><label for="status">Status *</label><select id="status"><option>New</option><option selected>Assigned</option><option>In Progress</option><option>Fixed</option><option>Retest</option></select></div>
             <div><label for="assigned">Assigned To *</label><select id="assigned"><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option><option>Fahad Noor</option></select></div>
             <div><label for="createdBy">Created By</label><input id="createdBy" type="text" value="qa.user" readonly aria-readonly="true"></div>
-            <div><label for="release">Release Version</label><input id="release" type="text" value="2026.04"></div>
-            <div><label for="deployment">Release Deployment Date</label><input id="deployment" type="date" value="2026-05-10"></div>
             <div class="span-2">
               <label for="stepsEditor">Steps to Replicate</label>
               <div class="tiptap-shell" data-steps-editor-shell>
@@ -213,6 +210,41 @@
         <p>3. Refresh the payment review screen</p>
       `;
 
+      function getImageWidth() {
+        const proseMirror = editorElement.querySelector(".ProseMirror");
+        const editorWidth = (proseMirror || editorElement).getBoundingClientRect().width - 32;
+        return String(Math.max(120, Math.min(520, Math.round(editorWidth || 420))));
+      }
+
+      function replaceTemporaryImageSource(editor, temporarySrc, finalSrc) {
+        let imagePosition = null;
+
+        editor.state.doc.descendants((node, position) => {
+          if (node.type.name === "image" && node.attrs.src === temporarySrc) {
+            imagePosition = position;
+            return false;
+          }
+          return true;
+        });
+
+        if (typeof imagePosition !== "number") {
+          return;
+        }
+
+        const imageNode = editor.state.doc.nodeAt(imagePosition);
+        if (!imageNode) {
+          return;
+        }
+
+        editor.view.dispatch(
+          editor.state.tr.setNodeMarkup(imagePosition, undefined, {
+            ...imageNode.attrs,
+            src: finalSrc,
+          })
+        );
+        htmlOutput.value = editor.getHTML();
+      }
+
       const editor = new Editor({
         element: editorElement,
         extensions: [
@@ -238,43 +270,40 @@
             }
 
             event.preventDefault();
-            const insertPosition = view.state.selection.from;
+            event.stopPropagation();
 
-            imageItems.forEach((item, index) => {
+            const insertedImages = [];
+            const imageContent = [];
+
+            imageItems.forEach((item) => {
               const file = item.getAsFile();
               if (!file) return;
-              const itemInsertPosition = insertPosition + index;
+              const temporarySrc = URL.createObjectURL(file);
+              const attrs = {
+                src: temporarySrc,
+                alt: "Pasted reproduction screenshot",
+                width: getImageWidth(),
+              };
 
+              imageContent.push({ type: "image", attrs }, { type: "paragraph" });
+              insertedImages.push({ file, temporarySrc });
+            });
+
+            if (!imageContent.length) {
+              return true;
+            }
+
+            editor.commands.insertContent(imageContent);
+            htmlOutput.value = editor.getHTML();
+
+            insertedImages.forEach(({ file, temporarySrc }) => {
               const reader = new FileReader();
               reader.onload = () => {
-                const temporaryImage = new window.Image();
-                function insertImage(width) {
-                  const attrs = {
-                    src: reader.result,
-                    alt: "Pasted reproduction screenshot",
-                  };
-
-                  if (width) {
-                    attrs.width = String(width);
-                  }
-
-                  editor
-                    .chain()
-                    .focus()
-                    .insertContentAt(itemInsertPosition, [
-                      { type: "image", attrs },
-                      { type: "paragraph" },
-                    ], { updateSelection: true })
-                    .run();
-                }
-
-                temporaryImage.onload = () => {
-                  const editorWidth = editorElement.getBoundingClientRect().width - 32;
-                  const initialWidth = Math.min(temporaryImage.naturalWidth || editorWidth, editorWidth);
-                  insertImage(Math.max(120, Math.round(initialWidth)));
-                };
-                temporaryImage.onerror = () => insertImage();
-                temporaryImage.src = reader.result;
+                replaceTemporaryImageSource(editor, temporarySrc, reader.result);
+                URL.revokeObjectURL(temporarySrc);
+              };
+              reader.onerror = () => {
+                URL.revokeObjectURL(temporarySrc);
               };
               reader.readAsDataURL(file);
             });

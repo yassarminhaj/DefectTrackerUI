@@ -686,6 +686,28 @@ textarea {
   font-size: 13px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topbar-actions .button,
+.topbar-actions button {
+  margin: 0;
+}
+
+.topbar-actions.header-action-links > .header-action:not(:last-child) {
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.topbar-actions.header-action-links > .header-action:not(:last-child)::after {
+  content: none;
+}
+
 .content {
   padding: 26px 28px 42px;
 }
@@ -1832,7 +1854,11 @@ tbody tr:hover .table-status-toggle button.active {
 }
 
 .table-status-toggle button[data-status-option="Inactive"].active,
-tbody tr:hover .table-status-toggle button[data-status-option="Inactive"].active {
+.table-status-toggle button[data-project-add-status-option="Inactive"].active,
+.table-status-toggle button[data-add-status-option="Inactive"].active,
+tbody tr:hover .table-status-toggle button[data-status-option="Inactive"].active,
+tbody tr:hover .table-status-toggle button[data-project-add-status-option="Inactive"].active,
+tbody tr:hover .table-status-toggle button[data-add-status-option="Inactive"].active {
   background: #e7e7e7;
   color: #303635;
 }
@@ -2205,6 +2231,47 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   line-height: 1.2;
 }
 
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.detail-title-row .detail-title {
+  margin-top: 0;
+}
+
+.detail-title-edit {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.edit-form-actions .button,
+.edit-form-actions button {
+  margin: 0;
+}
+
+.edit-form-actions {
+  justify-content: flex-start;
+  margin-top: 14px;
+  padding-top: 4px;
+}
+
+.secondary-action-button {
+  background: #ffffff;
+  border-color: #303635;
+  color: #303635;
+}
+
+.secondary-action-button:hover,
+.secondary-action-button:focus,
+.secondary-action-button:active {
+  background: #e7e7e7;
+  border-color: #0e1010;
+  color: #0e1010;
+}
+
 .detail-badges {
   display: flex;
   flex-wrap: wrap;
@@ -2256,6 +2323,33 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   margin: 0;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.edit-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.edit-field {
+  display: grid;
+  gap: 8px;
+}
+
+.edit-field input,
+.edit-field select,
+.edit-field textarea {
+  width: 100%;
+  margin: 0;
+}
+
+.edit-field textarea {
+  min-height: 112px;
+}
+
+.edit-description-field,
+.edit-upload-box {
+  margin-top: 18px;
 }
 
 .detail-tabs-card {
@@ -2892,6 +2986,39 @@ tbody tr:hover .table-status-toggle button:not(.active) {
 
 .user-form-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.modal-status-toggle {
+  width: 100%;
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 4px;
+}
+
+.modal-status-toggle button {
+  height: calc(var(--control-height) - 10px);
+  min-height: calc(var(--control-height) - 10px);
+}
+
+.modal-status-toggle button:not(.active):hover,
+.modal-status-toggle button:not(.active):focus,
+.modal-status-toggle button:not(.active):active {
+  background: transparent;
+  color: #303635;
+}
+
+.modal-status-toggle button[data-modal-user-status-option="Active"].active:hover,
+.modal-status-toggle button[data-modal-user-status-option="Active"].active:focus,
+.modal-status-toggle button[data-modal-user-status-option="Active"].active:active {
+  background: #2a4d32;
+  color: #ffffff;
+}
+
+.modal-status-toggle button[data-modal-user-status-option="Inactive"].active:hover,
+.modal-status-toggle button[data-modal-user-status-option="Inactive"].active:focus,
+.modal-status-toggle button[data-modal-user-status-option="Inactive"].active:active {
+  background: #e7e7e7;
+  color: #303635;
 }
 
 .modal-message {

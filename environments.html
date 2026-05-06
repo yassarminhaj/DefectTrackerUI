@@ -32,14 +32,12 @@
     <main class="main">
       <header class="topbar">
         <h1>Environments</h1>
-        <span class="topbar-meta">Manage testing and release environments</span>
       </header>
       <section class="content">
         <section class="card management-card">
           <div class="card-header management-header">
             <div>
               <h2>Environment List</h2>
-              <p class="management-subtitle">Add and maintain environment records</p>
             </div>
             <button class="add-record-button" type="button" data-env-add-trigger aria-label="Add environment"><span>+</span> Add Environment</button>
           </div>
@@ -58,10 +56,10 @@
                     <td><input data-env-name type="text" placeholder="Environment name"></td>
                     <td><input data-env-description type="text" placeholder="Short environment description"></td>
                     <td>
-                      <select data-env-status>
-                        <option>Active</option>
-                        <option>Inactive</option>
-                      </select>
+                      <div class="table-status-toggle" data-env-status data-status-value="Active" role="group" aria-label="Environment status">
+                        <button class="active" type="button" data-add-status-option="Active" data-status-option="Active" aria-pressed="true">Active</button>
+                        <button type="button" data-add-status-option="Inactive" data-status-option="Inactive" aria-pressed="false">Inactive</button>
+                      </div>
                     </td>
                     <td>
                       <div class="row-actions">

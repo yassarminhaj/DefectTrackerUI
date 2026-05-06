@@ -32,14 +32,12 @@
     <main class="main">
       <header class="topbar">
         <h1>Projects</h1>
-        <span class="topbar-meta">Manage project coverage</span>
       </header>
       <section class="content">
         <section class="card management-card">
           <div class="card-header management-header">
             <div>
               <h2>Project List</h2>
-              <p class="management-subtitle">Add and maintain project records</p>
             </div>
             <button class="add-project-button" type="button" data-add-row-trigger aria-label="Add project"><span>+</span> Add Project</button>
           </div>
@@ -58,10 +56,10 @@
                   <td><input data-project-name type="text" placeholder="Project name"></td>
                   <td><input data-project-description type="text" placeholder="Short project description"></td>
                   <td>
-                    <select data-project-status>
-                      <option>Active</option>
-                      <option>Inactive</option>
-                    </select>
+                    <div class="table-status-toggle" data-project-status="Active" role="group" aria-label="Project status">
+                      <button class="active" type="button" data-project-add-status-option="Active">Active</button>
+                      <button type="button" data-project-add-status-option="Inactive">Inactive</button>
+                    </div>
                   </td>
                   <td>
                     <div class="row-actions">

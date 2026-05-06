@@ -32,7 +32,6 @@
     <main class="main">
       <header class="topbar">
         <h1>Users</h1>
-        <span class="topbar-meta">Manage application users</span>
       </header>
       <section class="content">
         <section class="card management-card users-list-card">
@@ -73,7 +72,6 @@
           <h2 id="userModalTitle">Add User</h2>
           <p class="management-subtitle">Create the user and set the first password. Password is not shown after saving</p>
         </div>
-        <button type="button" data-close-user-modal>Close</button>
       </div>
       <div class="user-form-grid">
         <div>
@@ -89,11 +87,11 @@
           <input id="modalUserUsername" type="text" data-modal-user-username placeholder="username">
         </div>
         <div>
-          <label for="modalUserStatus">Status</label>
-          <select id="modalUserStatus" data-modal-user-status>
-            <option>Active</option>
-            <option>Inactive</option>
-          </select>
+          <label>Status</label>
+          <div class="table-status-toggle modal-status-toggle" data-modal-user-status data-status-value="Active" role="group" aria-label="User status">
+            <button class="active" type="button" data-modal-user-status-option="Active" data-status-option="Active" aria-pressed="true">Active</button>
+            <button type="button" data-modal-user-status-option="Inactive" data-status-option="Inactive" aria-pressed="false">Inactive</button>
+          </div>
         </div>
         <div>
           <label for="modalUserPassword">Password</label>
@@ -118,7 +116,6 @@
           <h2 id="passwordModalTitle">Reset Password</h2>
           <p class="management-subtitle">Enter the previous password, then set and confirm a new password</p>
         </div>
-        <button type="button" data-close-password-modal>Close</button>
       </div>
       <div class="password-user-summary">
         <span>User</span>

@@ -6,7 +6,7 @@
     navTarget = "dashboard.html";
   }
 
-  if (current === "defect_detail.html") {
+  if (current === "defect_detail.html" || current === "defect_edit.html") {
     navTarget = "defect_list.html";
   }
 
@@ -15,6 +15,7 @@
     "defect_list.html": "Loading defects...",
     "defect_create.html": "Reading source...",
     "defect_detail.html": "Loading defects...",
+    "defect_edit.html": "Loading defects...",
     "projects.html": "Reading source...",
     "users.html": "Reading source...",
     "environments.html": "Reading source...",
@@ -191,18 +192,52 @@
     });
   }
   (function setupBackLink() {
-    var backLink = document.querySelector("[data-back-link]");
-    if (!backLink) return;
+    var backLinks = Array.prototype.slice.call(document.querySelectorAll("[data-back-link]"));
+    var editDefectLink = document.querySelector("[data-edit-defect-link]");
+    var cancelDefectLinks = Array.prototype.slice.call(document.querySelectorAll("[data-cancel-defect-link]"));
     var params = new URLSearchParams(window.location.search);
     var back = params.get("back");
-    if (!back) return;
-    if (/^(https?:|\/\/|javascript:|data:)/i.test(back)) return;
-    backLink.setAttribute("href", back);
-    if (back.indexOf("dashboard.html") === 0) {
-      backLink.textContent = "← Back to Dashboard";
-    } else if (back.indexOf("defect_list.html") === 0) {
-      backLink.textContent = "← Back to Defects";
+
+    function isUnsafeBackTarget(target) {
+      return /^(https?:|\/\/|javascript:|data:)/i.test(target || "");
     }
+
+    function getBackPage(target) {
+      var cleanTarget = String(target || "").split("?")[0].split("#")[0].replace(/\\/g, "/").toLowerCase();
+      if (cleanTarget.indexOf("dashboard.html") !== -1) return "dashboard";
+      if (cleanTarget.indexOf("defect_list.html") !== -1) return "defects";
+      return "defects";
+    }
+
+    var safeReferrer = document.referrer && !isUnsafeBackTarget(document.referrer) ? document.referrer : "";
+    var safeBack = back && !isUnsafeBackTarget(back)
+      ? back
+      : (safeReferrer && getBackPage(safeReferrer) === "dashboard" ? safeReferrer : "defect_list.html");
+    var backPage = getBackPage(back || document.referrer || safeBack);
+
+    backLinks.forEach(function (backLink) {
+      backLink.setAttribute("href", "defect_list.html");
+      var label = backLink.querySelector("span");
+      if (label) label.innerHTML = "&larr; Back to Defects";
+      else backLink.innerHTML = "&larr; Back to Defects";
+    });
+
+    if (editDefectLink) {
+      if (backPage === "dashboard") {
+        editDefectLink.remove();
+        return;
+      }
+
+      var defectId = params.get("id") || "DF-1042";
+      editDefectLink.hidden = false;
+      editDefectLink.removeAttribute("aria-hidden");
+      editDefectLink.href = "defect_edit.html?id=" + encodeURIComponent(defectId) + "&back=" + encodeURIComponent(safeBack);
+    }
+
+    cancelDefectLinks.forEach(function (cancelDefectLink) {
+      var cancelDefectId = params.get("id") || "DF-1042";
+      cancelDefectLink.href = "defect_detail.html?id=" + encodeURIComponent(cancelDefectId) + "&back=" + encodeURIComponent(safeBack);
+    });
   })();
 
   var appShell = document.querySelector(".app-shell");
@@ -1992,6 +2027,13 @@
       });
     }
 
+    function updateAddProjectStatusToggle(status) {
+      projectStatusInput.setAttribute("data-project-status", status);
+      Array.prototype.slice.call(projectStatusInput.querySelectorAll("[data-project-add-status-option]")).forEach(function (button) {
+        button.classList.toggle("active", button.getAttribute("data-project-add-status-option") === status);
+      });
+    }
+
     function saveProjectRowEdit(row) {
       var nameInput = row.cells[0].querySelector("input");
       var descriptionInput = row.cells[1].querySelector("input");
@@ -2018,7 +2060,7 @@
     function resetProjectRow() {
       projectNameInput.value = "";
       projectDescriptionInput.value = "";
-      projectStatusInput.value = "Active";
+      updateAddProjectStatusToggle("Active");
     }
 
     function setProjectRowVisible(isVisible) {
@@ -2046,7 +2088,7 @@
     saveProjectButton.addEventListener("click", function () {
       var name = projectNameInput.value.trim();
       var description = projectDescriptionInput.value.trim();
-      var status = projectStatusInput.value;
+      var status = projectStatusInput.getAttribute("data-project-status") || "Active";
 
       if (!name) {
         projectNameInput.focus();
@@ -2081,6 +2123,7 @@
       var editButton = event.target.closest("[data-edit-project]");
       var saveButton = event.target.closest("[data-save-project-edit]");
       var cancelButton = event.target.closest("[data-cancel-project-edit]");
+      var addStatusOption = event.target.closest("[data-project-add-status-option]");
       var statusOption = event.target.closest("[data-status-option]");
       var row = event.target.closest("tr");
 
@@ -2094,6 +2137,8 @@
         saveProjectRowEdit(row);
       } else if (cancelButton) {
         cancelProjectRowEdit(row);
+      } else if (addStatusOption) {
+        updateAddProjectStatusToggle(addStatusOption.getAttribute("data-project-add-status-option"));
       } else if (statusOption) {
         updateProjectStatusToggle(statusOption.closest("[data-project-edit-status]"), statusOption.getAttribute("data-status-option"));
       }
@@ -2129,7 +2174,7 @@
       inputs.forEach(function (input) {
         if (input.element) input.element.value = "";
       });
-      if (statusInput) statusInput.value = "Active";
+      setAddStatusValue("Active");
     }
 
     function getBadgeClass(status) {
@@ -2189,7 +2234,28 @@
       toggle.setAttribute("data-edit-status", status);
       Array.prototype.slice.call(toggle.querySelectorAll("[data-status-option]")).forEach(function (button) {
         button.classList.toggle("active", button.getAttribute("data-status-option") === status);
+        button.setAttribute("aria-pressed", button.getAttribute("data-status-option") === status ? "true" : "false");
       });
+    }
+
+    function setAddStatusValue(status) {
+      if (!statusInput) return;
+      if (statusInput.tagName === "SELECT") {
+        statusInput.value = status;
+        return;
+      }
+      statusInput.setAttribute("data-status-value", status);
+      Array.prototype.slice.call(statusInput.querySelectorAll("[data-add-status-option]")).forEach(function (button) {
+        var isActive = button.getAttribute("data-add-status-option") === status;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
+    function getAddStatusValue() {
+      if (!statusInput) return "Active";
+      if (statusInput.tagName === "SELECT") return statusInput.value || "Active";
+      return statusInput.getAttribute("data-status-value") || "Active";
     }
 
     function createStatusToggle(status) {
@@ -2320,7 +2386,7 @@
           return;
         }
 
-        var status = statusInput.value;
+        var status = getAddStatusValue();
         var row = document.createElement("tr");
         var statusCell = document.createElement("td");
         var actionsCell = document.createElement("td");
@@ -2349,6 +2415,7 @@
       var editButton = event.target.closest(editSelector);
       var saveEditButton = event.target.closest("[data-save-inline-edit]");
       var cancelEditButton = event.target.closest("[data-cancel-inline-edit]");
+      var addStatusOption = event.target.closest("[data-add-status-option]");
       var statusOption = event.target.closest("[data-status-option]");
 
       if (!row) {
@@ -2361,6 +2428,8 @@
         saveRowEdit(row);
       } else if (cancelEditButton) {
         cancelRowEdit(row);
+      } else if (addStatusOption && row === addRow) {
+        setAddStatusValue(addStatusOption.getAttribute("data-add-status-option"));
       } else if (statusOption) {
         updateStatusToggle(statusOption.closest("[data-edit-status]"), statusOption.getAttribute("data-status-option"));
       }
@@ -2425,10 +2494,19 @@
       userNameInput.value = "";
       userEmailInput.value = "";
       userUsernameInput.value = "";
-      userStatusInput.value = "Active";
+      updateModalUserStatus("Active");
       userPasswordInput.value = "";
       userConfirmInput.value = "";
       setUserMessage("", "");
+    }
+
+    function updateModalUserStatus(status) {
+      userStatusInput.setAttribute("data-status-value", status);
+      Array.prototype.slice.call(userStatusInput.querySelectorAll("[data-modal-user-status-option]")).forEach(function (button) {
+        var isActive = button.getAttribute("data-modal-user-status-option") === status;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
     }
 
     function openUserModal() {
@@ -2480,7 +2558,7 @@
       var name = userNameInput.value.trim();
       var email = userEmailInput.value.trim();
       var username = userUsernameInput.value.trim();
-      var status = userStatusInput.value;
+      var status = userStatusInput.getAttribute("data-status-value") || "Active";
       var password = userPasswordInput.value.trim();
       var confirmPassword = userConfirmInput.value.trim();
       var row = document.createElement("tr");
@@ -2539,6 +2617,12 @@
       if (event.key === "Escape") {
         closeUserModal();
       }
+    });
+
+    userStatusInput.addEventListener("click", function (event) {
+      var statusButton = event.target.closest("[data-modal-user-status-option]");
+      if (!statusButton) return;
+      updateModalUserStatus(statusButton.getAttribute("data-modal-user-status-option"));
     });
 
     saveModalUserButton.addEventListener("click", saveModalUser);
@@ -2770,20 +2854,60 @@
       }
     }
 
-    function insertFallbackImage(src) {
+    function getFallbackSelectionRange() {
+      var selection = window.getSelection();
+      if (!selection || !selection.rangeCount) {
+        return null;
+      }
+
+      var range = selection.getRangeAt(0);
+      if (!fallbackStepsEditor.contains(range.commonAncestorContainer)) {
+        return null;
+      }
+
+      return range.cloneRange();
+    }
+
+    function placeFallbackCaret(paragraph) {
+      var selection = window.getSelection();
+      if (!selection) {
+        return;
+      }
+
+      var range = document.createRange();
+      range.setStart(paragraph, 0);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function insertFallbackImage(src, range) {
       var wrapper = document.createElement("div");
       var image = document.createElement("img");
       var handle = document.createElement("span");
+      var paragraph = document.createElement("p");
+      var fragment = document.createDocumentFragment();
+
       wrapper.className = "resizable-image-node is-selected";
       wrapper.contentEditable = "false";
       image.src = src;
       image.alt = "Pasted reproduction screenshot";
       image.style.width = "420px";
       handle.className = "image-resize-handle";
+      paragraph.appendChild(document.createElement("br"));
       wrapper.appendChild(image);
       wrapper.appendChild(handle);
-      fallbackStepsEditor.appendChild(wrapper);
-      fallbackStepsEditor.appendChild(document.createElement("p"));
+      fragment.appendChild(wrapper);
+      fragment.appendChild(paragraph);
+
+      if (range && fallbackStepsEditor.contains(range.commonAncestorContainer)) {
+        range.deleteContents();
+        range.insertNode(fragment);
+      } else {
+        fallbackStepsEditor.appendChild(fragment);
+      }
+
+      placeFallbackCaret(paragraph);
       updateFallbackStepsHtml();
     }
 
@@ -2794,31 +2918,20 @@
         window.setTimeout(updateFallbackStepsHtml, 0);
         return;
       }
-      if (window.defectStepsEditor) {
+      if (window.defectStepsEditor || fallbackStepsEditor.querySelector(".ProseMirror")) {
         return;
       }
+      var pasteRange = getFallbackSelectionRange();
       event.preventDefault();
       event.stopImmediatePropagation();
       var file = imageItem.getAsFile();
       if (!file) return;
       var reader = new FileReader();
       reader.onload = function () {
-        if (window.defectStepsEditor) {
-          var editorWidth = fallbackStepsEditor.getBoundingClientRect().width - 32;
-          window.defectStepsEditor
-            .chain()
-            .focus()
-            .setImage({
-              src: reader.result,
-              alt: "Pasted reproduction screenshot",
-              width: String(Math.max(120, Math.min(520, Math.round(editorWidth || 420))))
-            })
-            .createParagraphNear()
-            .run();
-          fallbackStepsHtml.value = window.defectStepsEditor.getHTML();
+        if (window.defectStepsEditor || fallbackStepsEditor.querySelector(".ProseMirror")) {
           return;
         }
-        insertFallbackImage(reader.result);
+        insertFallbackImage(reader.result, pasteRange);
       };
       reader.readAsDataURL(file);
     }
@@ -3756,8 +3869,9 @@
       event.preventDefault();
       var message = form.querySelector("[data-form-message]");
       if (message) {
-        message.textContent = "Defect saved for review";
+        message.textContent = form.getAttribute("data-form-success") || "Defect saved for review";
       }
     });
   });
 })();
+

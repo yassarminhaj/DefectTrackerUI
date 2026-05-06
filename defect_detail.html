@@ -32,7 +32,9 @@
     <main class="main">
       <header class="topbar">
         <h1>Defect Detail</h1>
-        <a class="button" data-back-link href="defect_list.html">← Back to Defects</a>
+        <div class="topbar-actions header-action-links">
+          <a class="header-action" data-back-link href="defect_list.html"><span>&larr; Back to Defects</span></a>
+        </div>
       </header>
       <section class="content">
         <section class="detail-hero">
@@ -45,12 +47,10 @@
                 <span class="badge badge-danger">P1 Priority</span>
               </div>
             </div>
-            <h2 class="detail-title">Invoice total mismatch after tax recalculation</h2>
-          </div>
-          <div class="detail-controls">
-            <div><label>Change Status</label><select><option>In Progress</option><option>Fixed</option><option>Developer Rejected</option><option>Assigned Again</option></select></div>
-            <div><label>Reassign To</label><select><option>Aisha Khan</option><option>Omar Salem</option><option>Leena Faris</option><option>Fahad Noor</option></select></div>
-            <button class="button-primary detail-save-button">Save Changes</button>
+            <div class="detail-title-row">
+              <h2 class="detail-title">Invoice total mismatch after tax recalculation</h2>
+              <a class="defect-edit-icon detail-title-edit" data-edit-defect-link href="defect_edit.html?id=DF-1042&amp;back=defect_list.html" title="Edit DF-1042" aria-label="Edit DF-1042" hidden><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>
+            </div>
           </div>
         </section>
 
@@ -125,10 +125,6 @@
               <div class="comments">
                 <div class="comment"><strong>Omar Salem</strong><p>Confirmed in SIT and UAT. The calculation endpoint returns a different tax component after refresh.</p><div class="comment-meta">2026-04-22 10:14</div></div>
                 <div class="comment"><strong>Aisha Khan</strong><p>Investigating cached invoice summary versus recalculated values.</p><div class="comment-meta">2026-04-22 13:45</div></div>
-                <div class="comment-entry">
-                  <textarea placeholder="Add a comment"></textarea>
-                  <button class="button-primary">Add Comment</button>
-                </div>
               </div>
             </div>
             <div class="tab-panel" data-tab-panel="detail-history" hidden>
