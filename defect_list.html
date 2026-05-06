@@ -22,7 +22,6 @@
       <nav class="nav">
         <a data-nav href="dashboard.html"><span class="nav-icon">&#9633;</span>Dashboard</a>
         <a data-nav href="defect_list.html"><span class="nav-icon">&#8801;</span>Defects</a>
-        <a data-nav href="defect_create.html"><span class="nav-icon">+</span>Create Defect</a>
         <a data-nav href="projects.html"><span class="nav-icon">&#9636;</span>Projects</a>
         <a data-nav href="users.html"><span class="nav-icon">&#9678;</span>Users</a>
         <a data-nav href="environments.html"><span class="nav-icon">&#9673;</span>Environments</a>
@@ -40,11 +39,24 @@
           <div class="card-header">
             <div>
               <h2>Defect Filters</h2>
-              <p class="section-subtitle">Refine the defect table by project, status, release, or owner.</p>
             </div>
             <div class="filter-actions header-action-links dashboard-filter-actions">
               <button class="header-action" type="button" data-toggle-defect-filters aria-expanded="false"><span data-defect-filter-toggle-label>Expand</span></button>
               <button class="header-action" type="button" data-reset-defect-filters><span>Clear Filters</span></button>
+              <div class="export-split" data-export-split-defect-list>
+                <button class="header-action export-split-main" type="button" data-defect-list-export data-export-mode="current"><span>Export CSV</span></button>
+                <button class="header-action export-split-caret" type="button" data-export-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Choose export mode"><span aria-hidden="true">▾</span></button>
+                <div class="export-split-menu" data-export-menu role="menu" hidden>
+                  <button class="export-split-menu-item" type="button" role="menuitem" data-export-mode="current">
+                    <span class="export-split-menu-label">Current view</span>
+                    <span class="export-split-menu-hint">What's on screen — visible columns &amp; filtered rows</span>
+                  </button>
+                  <button class="export-split-menu-item" type="button" role="menuitem" data-export-mode="all">
+                    <span class="export-split-menu-label">All columns</span>
+                    <span class="export-split-menu-hint">Every available field, including hidden ones</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <div class="card-pad" data-defect-filter-body hidden>
@@ -70,30 +82,26 @@
             <span class="muted" data-defect-result-count>4 records</span>
           </div>
           <div class="table-wrap">
-            <table>
+            <table class="report-table" data-defect-list-table>
               <thead>
                 <tr>
-                  <th>Defect ID</th>
-                  <th>Title</th>
-                  <th>Project</th>
-                  <th>Environment</th>
-                  <th>Severity</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Assigned To</th>
-                  <th>Release Version</th>
-                  <th>Release Deployment Date</th>
-                  <th>Fix Date</th>
-                  <th>Closure Date</th>
-                  <th>Created By</th>
-                  <th>Created Date</th>
-                  <th>Actions</th>
+                  <th data-sort-key="id">Defect ID</th>
+                  <th data-sort-key="title">Title</th>
+                  <th data-sort-key="project">Project</th>
+                  <th data-sort-key="environment">Environment</th>
+                  <th data-sort-key="severity">Severity</th>
+                  <th data-sort-key="priority">Priority</th>
+                  <th data-sort-key="status">Status</th>
+                  <th data-sort-key="assignedTo">Assigned To</th>
+                  <th data-sort-key="releaseVersion">Release Version</th>
+                  <th data-sort-key="createdBy">Created By</th>
+                  <th data-sort-key="createdDate">Created Date</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>DF-1042</td>
-                  <td>Invoice total mismatch after tax recalculation</td>
+                  <td class="defect-id-cell"><span class="defect-id-cell-inner"><a class="defect-id-link" href="defect_detail.html?id=DF-1042&amp;back=defect_list.html">DF-1042</a><a class="defect-edit-icon" href="defect_create.html?id=DF-1042&amp;back=defect_list.html" title="Edit DF-1042" aria-label="Edit DF-1042"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></span></td>
+                  <td title="Invoice total mismatch after tax recalculation">Invoice total mismatch after tax recalculation</td>
                   <td>Billing Core</td>
                   <td>UAT</td>
                   <td><span class="badge badge-high">High</span></td>
@@ -101,16 +109,12 @@
                   <td><span class="badge badge-progress">In Progress</span></td>
                   <td>Aisha Khan</td>
                   <td>2026.04</td>
-                  <td>2026-05-10</td>
-                  <td>-</td>
-                  <td>-</td>
                   <td>qa.user</td>
                   <td>2026-04-21</td>
-                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
                 </tr>
                 <tr>
-                  <td>DF-1037</td>
-                  <td>Attachment preview fails for PNG screenshots</td>
+                  <td class="defect-id-cell"><span class="defect-id-cell-inner"><a class="defect-id-link" href="defect_detail.html?id=DF-1037&amp;back=defect_list.html">DF-1037</a><a class="defect-edit-icon" href="defect_create.html?id=DF-1037&amp;back=defect_list.html" title="Edit DF-1037" aria-label="Edit DF-1037"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></span></td>
+                  <td title="Attachment preview fails for PNG screenshots">Attachment preview fails for PNG screenshots</td>
                   <td>Claims Portal</td>
                   <td>SIT</td>
                   <td><span class="badge badge-medium">Medium</span></td>
@@ -118,16 +122,12 @@
                   <td><span class="badge badge-assigned">Assigned</span></td>
                   <td>Omar Salem</td>
                   <td>2026.04</td>
-                  <td>2026-05-10</td>
-                  <td>-</td>
-                  <td>-</td>
                   <td>qa.user</td>
                   <td>2026-04-18</td>
-                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
                 </tr>
                 <tr>
-                  <td>DF-1029</td>
-                  <td>UAT users are logged out before timeout policy</td>
+                  <td class="defect-id-cell"><span class="defect-id-cell-inner"><a class="defect-id-link" href="defect_detail.html?id=DF-1029&amp;back=defect_list.html">DF-1029</a><a class="defect-edit-icon" href="defect_create.html?id=DF-1029&amp;back=defect_list.html" title="Edit DF-1029" aria-label="Edit DF-1029"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></span></td>
+                  <td title="UAT users are logged out before timeout policy">UAT users are logged out before timeout policy</td>
                   <td>Claims Portal</td>
                   <td>UAT</td>
                   <td><span class="badge badge-critical">Critical</span></td>
@@ -135,16 +135,12 @@
                   <td><span class="badge badge-reopened">Reopened</span></td>
                   <td>Leena Faris</td>
                   <td>2026.03</td>
-                  <td>2026-04-12</td>
-                  <td>2026-04-17</td>
-                  <td>-</td>
                   <td>qa.user</td>
                   <td>2026-04-10</td>
-                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
                 </tr>
                 <tr>
-                  <td>DF-1018</td>
-                  <td>Project filter does not persist after refresh</td>
+                  <td class="defect-id-cell"><span class="defect-id-cell-inner"><a class="defect-id-link" href="defect_detail.html?id=DF-1018&amp;back=defect_list.html">DF-1018</a><a class="defect-edit-icon" href="defect_create.html?id=DF-1018&amp;back=defect_list.html" title="Edit DF-1018" aria-label="Edit DF-1018"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></span></td>
+                  <td title="Project filter does not persist after refresh">Project filter does not persist after refresh</td>
                   <td>Mobile QA</td>
                   <td>SIT</td>
                   <td><span class="badge badge-low">Low</span></td>
@@ -152,12 +148,8 @@
                   <td><span class="badge badge-closed">Closed</span></td>
                   <td>Fahad Noor</td>
                   <td>2026.02</td>
-                  <td>2026-03-08</td>
-                  <td>2026-03-12</td>
-                  <td>2026-03-14</td>
                   <td>qa.user</td>
                   <td>2026-03-05</td>
-                  <td><a class="button" href="defect_detail.html">View</a> <a class="button" href="defect_create.html">Edit</a></td>
                 </tr>
               </tbody>
             </table>

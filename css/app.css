@@ -667,10 +667,12 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   min-height: 68px;
-  padding: 0 28px;
+  padding: 14px 28px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .topbar h1 {
@@ -767,6 +769,10 @@ textarea {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.grid-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .grid-6 {
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -844,11 +850,11 @@ textarea {
 }
 
 .summary-card {
-  padding: 18px;
+  padding: 14px;
 }
 
 .summary-label {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -856,12 +862,19 @@ textarea {
 
 .summary-value {
   margin: 0;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 800;
 }
 
+.summary-value-baseline {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .summary-note {
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -877,6 +890,23 @@ textarea {
 .dashboard-kpi {
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.dashboard-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 16, 16, 0.10);
+}
+
+.dashboard-kpi.is-active {
+  background: #f7f7f7;
+  border-color: #262828;
+}
+
+.dashboard-kpi.is-active::before {
+  width: 8px;
 }
 
 .dashboard-kpi::before {
@@ -884,11 +914,76 @@ textarea {
   position: absolute;
   inset: 0 auto 0 0;
   width: 5px;
-  background: linear-gradient(180deg, #b5ccbb 0%, #23402a 100%);
+  background: linear-gradient(180deg, #303635 0%, #262828 100%);
+  transition: width 140ms ease;
 }
 
-.dashboard-filter-panel .card-header {
+.dashboard-kpi:has([data-kpi-value="total"])::before {
+  background: linear-gradient(180deg, #303635 0%, #262828 100%);
+}
+
+.dashboard-kpi:has([data-kpi-value="open"])::before {
+  background: linear-gradient(180deg, #dc9b9b 0%, #b83737 100%);
+}
+
+.dashboard-kpi:has([data-kpi-value="fixed"])::before {
+  background: linear-gradient(180deg, #b5ccbb 0%, #7ea687 100%);
+}
+
+.dashboard-kpi:has([data-kpi-value="closed"])::before {
+  background: linear-gradient(180deg, #7ea687 0%, #23402a 100%);
+}
+
+.dashboard-kpi:has([data-kpi-value="highOpen"])::before {
+  background: linear-gradient(180deg, #b83737 0%, #5c1c1c 100%);
+}
+
+.dashboard-filter-panel .card-header,
+.defect-filter-panel .card-header {
   align-items: center;
+}
+
+.dashboard-filter-panel .card-header > div,
+.defect-filter-panel .card-header > div {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+.dashboard-filter-panel .filter-actions,
+.defect-filter-panel .filter-actions {
+  align-self: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  row-gap: 0;
+  column-gap: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  margin: 0;
+}
+
+.dashboard-filter-panel .filter-actions > *,
+.defect-filter-panel .filter-actions > * {
+  align-self: center;
+  height: 34px;
+  margin-top: 0;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.dashboard-filter-panel .filter-actions .header-action,
+.defect-filter-panel .filter-actions .header-action {
+  margin-top: 0;
+  margin-bottom: 0;
+  height: 34px;
+  min-height: 34px;
+}
+
+.dashboard-filter-panel,
+.defect-filter-panel {
+  overflow: visible;
 }
 
 .dashboard-filter-panel.is-collapsed .card-pad {
@@ -925,12 +1020,14 @@ textarea {
   line-height: 18px;
 }
 
-.header-action-links .header-action:not(:last-child) {
+.header-action-links > .header-action:not(:last-child),
+.header-action-links > .export-split:not(:last-child) {
   margin-right: 13px;
   padding-right: 13px;
 }
 
-.header-action-links .header-action:not(:last-child)::after {
+.header-action-links > .header-action:not(:last-child)::after,
+.header-action-links > .export-split:not(:last-child)::after {
   content: "|";
   position: absolute;
   right: 0;
@@ -945,6 +1042,107 @@ textarea {
 .header-action-links .header-action:focus {
   color: #0e1010;
   text-decoration-color: #0e1010;
+}
+
+/* Export split-button: a primary "Current view" action + caret that opens a small mode menu.
+   The split itself is one item in the .filter-actions row (so it gets the leading "|" separator
+   from its left sibling), but inside the split there is NO separator between main and caret —
+   they read as one bonded control. */
+.export-split {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-action-links .export-split-main,
+.header-action-links .export-split-caret {
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.header-action-links .export-split-main::after,
+.header-action-links .export-split-caret::after {
+  content: none;
+}
+
+.header-action-links .export-split-caret {
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.header-action-links .export-split-caret:hover,
+.header-action-links .export-split-caret:focus,
+.header-action-links .export-split-caret:focus-visible {
+  text-decoration: none;
+}
+
+.export-split:hover .export-split-main,
+.export-split:focus-within .export-split-main {
+  color: #0e1010;
+  text-decoration-color: #0e1010;
+}
+
+.export-split:hover .export-split-caret,
+.export-split:focus-within .export-split-caret {
+  color: #0e1010;
+}
+
+.export-split-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 240px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #d8dcdc;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(14, 16, 16, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-split-menu[hidden] {
+  display: none;
+}
+
+.export-split-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.export-split-menu-item:hover,
+.export-split-menu-item:focus-visible {
+  background: #f3f5f5;
+  outline: none;
+}
+
+.export-split-menu-label {
+  color: #0e1010;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.export-split-menu-hint {
+  color: var(--muted, #6b7271);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
 }
 
 
@@ -1102,6 +1300,10 @@ textarea {
   grid-column: span 8;
 }
 
+.report-chart-card.half-chart {
+  grid-column: span 6;
+}
+
 .report-chart-card.is-dragging {
   opacity: 0.45;
 }
@@ -1220,8 +1422,92 @@ textarea {
 
 .restore-chart-select {
   width: auto;
-  min-width: 190px;
+  min-width: 200px;
+  height: 42px;
+  min-height: 42px;
   margin: 0;
+  padding: 0 36px 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.card-header:has(.charts-section-title) > div:first-child {
+  display: contents;
+}
+
+.charts-section-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  margin: 0;
+}
+
+.card-header:has(.charts-section-title) .filter-actions {
+  display: flex;
+  align-items: center;
+  height: 34px;
+}
+
+.card-header:has(.charts-section-title) .restore-chart-select,
+.card-header:has(.charts-section-title) .add-project-button {
+  height: 34px;
+  min-height: 34px;
+}
+
+.card-header:has(.charts-section-title) .add-project-button {
+  padding: 0 14px;
+}
+
+.card-header:has(.charts-section-title) .add-project-button span {
+  font-size: 18px;
+}
+
+.chart-values-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.chart-values-icon-toggle:hover {
+  background: rgba(48, 54, 53, 0.06);
+  color: #303635;
+}
+
+.chart-values-icon-toggle .chart-values-icon-on {
+  display: none;
+}
+
+.chart-values-icon-toggle[aria-pressed="true"] {
+  background: #262828;
+  color: #ffffff;
+}
+
+.chart-values-icon-toggle[aria-pressed="true"]:hover {
+  background: #0e1010;
+}
+
+.chart-values-icon-toggle[aria-pressed="true"] .chart-values-icon-off {
+  display: none;
+}
+
+.chart-values-icon-toggle[aria-pressed="true"] .chart-values-icon-on {
+  display: inline-block;
 }
 
 .canvas-wrap.tall {
@@ -1258,6 +1544,49 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.defect-id-link {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.defect-id-link:hover,
+.defect-id-link:focus {
+  text-decoration: underline;
+  color: #0e1010;
+}
+
+.defect-id-cell {
+  white-space: nowrap;
+}
+
+.defect-id-cell-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.defect-edit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.defect-edit-icon:hover,
+.defect-edit-icon:focus {
+  background: rgba(48, 54, 53, 0.08);
+  color: #303635;
+  text-decoration: none;
+  outline: none;
 }
 
 .table-wrap {
@@ -2619,6 +2948,7 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   }
 
   .grid-6,
+  .grid-5,
   .grid-4,
   .grid-3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2633,7 +2963,8 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   }
 
   .report-chart-card,
-  .report-chart-card.wide-chart {
+  .report-chart-card.wide-chart,
+  .report-chart-card.half-chart {
     grid-column: span 6;
   }
 
@@ -2737,6 +3068,7 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   }
 
   .grid-6,
+  .grid-5,
   .grid-4,
   .grid-3,
   .grid-2,
@@ -2783,7 +3115,8 @@ tbody tr:hover .table-status-toggle button:not(.active) {
   }
 
   .report-chart-card,
-  .report-chart-card.wide-chart {
+  .report-chart-card.wide-chart,
+  .report-chart-card.half-chart {
     grid-column: span 1;
   }
 

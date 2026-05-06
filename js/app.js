@@ -88,6 +88,123 @@
     window.addEventListener("load", hideLoader, { once: true });
   }
 
+  (function setupDefectListSort() {
+    var defectTable = document.querySelector("[data-defect-list-table]");
+    if (!defectTable) return;
+    var tbody = defectTable.querySelector("tbody");
+    if (!tbody) return;
+    var headers = Array.prototype.slice.call(defectTable.querySelectorAll("th[data-sort-key]"));
+    if (!headers.length) return;
+    var severityWeights = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+    var priorityWeights = { P1: 4, P2: 3, P3: 2, P4: 1 };
+    var sortKeyToIndex = {};
+    headers.forEach(function (th, index) {
+      sortKeyToIndex[th.getAttribute("data-sort-key")] = index;
+    });
+    var currentSortKey = null;
+    var currentSortAsc = true;
+    function getCellText(row, columnIndex) {
+      var cell = row.children[columnIndex];
+      if (!cell) return "";
+      return cell.textContent.trim();
+    }
+    function compareValues(key, a, b) {
+      if (key === "severity") {
+        return (severityWeights[a] || 0) - (severityWeights[b] || 0);
+      }
+      if (key === "priority") {
+        return (priorityWeights[a] || 0) - (priorityWeights[b] || 0);
+      }
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+    }
+    function applySort(key) {
+      if (currentSortKey === key) {
+        currentSortAsc = !currentSortAsc;
+      } else {
+        currentSortKey = key;
+        currentSortAsc = true;
+      }
+      var columnIndex = sortKeyToIndex[key];
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+      rows.sort(function (a, b) {
+        var result = compareValues(key, getCellText(a, columnIndex), getCellText(b, columnIndex));
+        return currentSortAsc ? result : -result;
+      });
+      rows.forEach(function (row) {
+        tbody.appendChild(row);
+      });
+      headers.forEach(function (th) {
+        th.classList.remove("sorted-asc", "sorted-desc");
+      });
+      var activeHeader = defectTable.querySelector('th[data-sort-key="' + key + '"]');
+      if (activeHeader) {
+        activeHeader.classList.add(currentSortAsc ? "sorted-asc" : "sorted-desc");
+      }
+    }
+    headers.forEach(function (th) {
+      th.addEventListener("click", function () {
+        applySort(th.getAttribute("data-sort-key"));
+      });
+    });
+  })();
+
+  // Wires up an Export split-button: a primary "Current view" button + a caret that opens a small
+  // menu with two items ("Current view" / "All columns"). The supplied exportFn is called with the
+  // chosen mode string ("current" | "all"). Designed to be safe if any element is missing.
+  function initExportSplit(root, exportFn) {
+    if (!root || typeof exportFn !== "function") return;
+    var toggle = root.querySelector("[data-export-toggle]");
+    var menu = root.querySelector("[data-export-menu]");
+    var main = root.querySelector(".export-split-main");
+    if (!toggle || !menu) return;
+    function closeMenu() {
+      menu.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      document.removeEventListener("click", outsideClick, true);
+      document.removeEventListener("keydown", keyHandler, true);
+    }
+    function openMenu() {
+      menu.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", outsideClick, true);
+      document.addEventListener("keydown", keyHandler, true);
+    }
+    function outsideClick(event) {
+      if (!root.contains(event.target)) closeMenu();
+    }
+    function keyHandler(event) {
+      if (event.key === "Escape") { closeMenu(); toggle.focus(); }
+    }
+    function handleTriggerClick(event) {
+      event.stopPropagation();
+      event.preventDefault();
+      if (menu.hidden) openMenu(); else closeMenu();
+    }
+    toggle.addEventListener("click", handleTriggerClick);
+    if (main) main.addEventListener("click", handleTriggerClick);
+    Array.prototype.slice.call(menu.querySelectorAll("[data-export-mode]")).forEach(function (item) {
+      item.addEventListener("click", function () {
+        var mode = item.getAttribute("data-export-mode") || "current";
+        closeMenu();
+        exportFn(mode);
+      });
+    });
+  }
+  (function setupBackLink() {
+    var backLink = document.querySelector("[data-back-link]");
+    if (!backLink) return;
+    var params = new URLSearchParams(window.location.search);
+    var back = params.get("back");
+    if (!back) return;
+    if (/^(https?:|\/\/|javascript:|data:)/i.test(back)) return;
+    backLink.setAttribute("href", back);
+    if (back.indexOf("dashboard.html") === 0) {
+      backLink.textContent = "← Back to Dashboard";
+    } else if (back.indexOf("defect_list.html") === 0) {
+      backLink.textContent = "← Back to Defects";
+    }
+  })();
+
   var appShell = document.querySelector(".app-shell");
   var sidebar = document.querySelector(".sidebar");
   var sidebarToggle = document.querySelector("[data-sidebar-toggle]");
@@ -669,18 +786,20 @@
     var reportChartTitleInput = reportChartModal.querySelector("[data-report-chart-title]");
     var reportChartTypeInput = reportChartModal.querySelector("[data-report-chart-type]");
     var reportChartGroupInput = reportChartModal.querySelector("[data-report-chart-group]");
+    var reportChartStackInput = reportChartModal.querySelector("[data-report-chart-stack]");
+    var reportChartStackRow = reportChartModal.querySelector("[data-stack-by-row]");
     var reportChartInstances = {};
     var draggedReportChart = null;
     var reportChartDefinitions = {
       status: { title: "Defects by Status", type: "doughnut", groupBy: "status", span: 4, tall: false },
       severity: { title: "Defects by Severity", type: "bar", groupBy: "severity", span: 4, tall: false },
       environment: { title: "Defects by Environment", type: "doughnut", groupBy: "environment", span: 4, tall: false },
-      releaseVersion: { title: "Defects by Release", type: "horizontal", groupBy: "releaseVersion", span: 4, tall: false },
-      trend: { title: "Created Defect Trend", type: "line", groupBy: "createdMonth", span: 8, tall: false },
-      aging: { title: "Open Aging Buckets", type: "bar", groupBy: "aging", span: 4, tall: false }
+      releaseVersion: { title: "Defects by Release", type: "horizontal", groupBy: "releaseVersion", span: 6, tall: false },
+      trend: { title: "Created Defect Trend", type: "line", groupBy: "createdMonth", span: 6, tall: false }
     };
     var reportSortKey = "createdDate";
     var reportSortAsc = false;
+    var activeReportKpi = null;
     var labelMap = {
       status: "Status",
       severity: "Severity",
@@ -717,6 +836,11 @@
       Chart.defaults.font.family = '"Book Antiqua", Palatino, serif';
       Chart.defaults.color = "#303635";
       Chart.defaults.borderColor = "rgba(48, 54, 53, .18)";
+      if (window.ChartDataLabels && !Chart._dtDataLabelsRegistered) {
+        Chart.register(window.ChartDataLabels);
+        Chart.defaults.set("plugins.datalabels", { display: false });
+        Chart._dtDataLabelsRegistered = true;
+      }
     }
 
     reportRecords.forEach(function (record) {
@@ -724,6 +848,16 @@
       record.age = Math.max(0, Math.round((reportToday - created) / 86400000));
       record.createdMonth = record.createdDate.slice(0, 7);
     });
+
+    var kpiBaseline = {
+      total: reportRecords.length,
+      open: reportRecords.filter(function (r) { return isOpenStatus(r.status); }).length,
+      fixed: reportRecords.filter(function (r) { return r.status === "Fixed"; }).length,
+      closed: reportRecords.filter(function (r) { return r.status === "Closed"; }).length,
+      highOpen: reportRecords.filter(function (r) {
+        return isOpenStatus(r.status) && (r.priority === "P1" || r.priority === "P2");
+      }).length
+    };
 
     function uniqueValues(field) {
       return Array.from(new Set(reportRecords.map(function (record) {
@@ -752,6 +886,32 @@
       return filters;
     }
 
+    function syncFiltersToUrl() {
+      var filters = getReportFilters();
+      var params = new URLSearchParams();
+      Object.keys(filters).forEach(function (key) {
+        if (filters[key]) params.set(key, filters[key]);
+      });
+      if (activeReportKpi) params.set("kpi", activeReportKpi);
+      var queryString = params.toString();
+      var newUrl = window.location.pathname + (queryString ? "?" + queryString : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    }
+
+    function applyUrlFilters() {
+      var params = new URLSearchParams(window.location.search);
+      reportFilters.forEach(function (control) {
+        var key = control.getAttribute("data-report-filter");
+        var value = params.get(key);
+        if (value !== null) control.value = value;
+      });
+      var kpiParam = params.get("kpi");
+      if (kpiParam && ["open", "fixed", "closed", "highOpen"].indexOf(kpiParam) !== -1) {
+        activeReportKpi = kpiParam;
+      }
+      updateActiveKpiVisual();
+    }
+
     function getFilteredReportRecords() {
       var filters = getReportFilters();
       var search = (filters.search || "").toLowerCase();
@@ -765,6 +925,13 @@
         if (filters.releaseVersion && record.releaseVersion !== filters.releaseVersion) return false;
         if (filters.from && record.createdDate < filters.from) return false;
         if (filters.to && record.createdDate > filters.to) return false;
+        if (activeReportKpi === "open" && !isOpenStatus(record.status)) return false;
+        if (activeReportKpi === "fixed" && record.status !== "Fixed") return false;
+        if (activeReportKpi === "closed" && record.status !== "Closed") return false;
+        if (activeReportKpi === "highOpen") {
+          if (!isOpenStatus(record.status)) return false;
+          if (record.priority !== "P1" && record.priority !== "P2") return false;
+        }
         if (search) {
           var searchable = [record.id, record.title, record.project, record.environment, record.status, record.severity, record.priority, record.assignedTo, record.createdBy, record.releaseVersion].join(" ").toLowerCase();
           if (searchable.indexOf(search) === -1) return false;
@@ -785,25 +952,71 @@
         return isOpenStatus(record.status) && (record.priority === "P1" || record.priority === "P2");
       });
       var avgAge = openRows.length ? Math.round(openRows.reduce(function (sum, record) { return sum + record.age; }, 0) / openRows.length) : 0;
-      setKpi("total", rows.length);
-      setKpi("open", openRows.length);
-      setKpi("fixed", fixedRows.length);
-      setKpi("closed", closedRows.length);
-      setKpi("highOpen", highOpenRows.length);
+      setKpi("total", rows.length, kpiBaseline.total);
+      setKpi("open", openRows.length, kpiBaseline.open);
+      setKpi("fixed", fixedRows.length, kpiBaseline.fixed);
+      setKpi("closed", closedRows.length, kpiBaseline.closed);
+      setKpi("highOpen", highOpenRows.length, kpiBaseline.highOpen);
       setKpi("avgAge", avgAge + "d");
       setKpiNote("total", rows.length === reportRecords.length ? "All defects" : "Filtered view");
       setKpiNote("open", rows.length ? Math.round((openRows.length / rows.length) * 100) + "% of view" : "No defects");
       setKpiNote("closed", rows.length ? Math.round((closedRows.length / rows.length) * 100) + "% of view" : "No defects");
     }
 
-    function setKpi(key, value) {
+    function setKpi(key, value, baseline) {
       var el = document.querySelector('[data-kpi-value="' + key + '"]');
-      if (el) el.textContent = value;
+      if (!el) return;
+      if (baseline === undefined || baseline === null || value === baseline) {
+        el.textContent = value;
+        return;
+      }
+      el.innerHTML = "";
+      var currentSpan = document.createElement("span");
+      currentSpan.className = "summary-value-current";
+      currentSpan.textContent = value;
+      var baselineSpan = document.createElement("span");
+      baselineSpan.className = "summary-value-baseline";
+      baselineSpan.textContent = " of " + baseline;
+      el.appendChild(currentSpan);
+      el.appendChild(baselineSpan);
     }
 
     function setKpiNote(key, value) {
       var el = document.querySelector('[data-kpi-note="' + key + '"]');
       if (el) el.textContent = value;
+    }
+
+    function getKpiKeyFromCard(card) {
+      var valueEl = card.querySelector("[data-kpi-value]");
+      return valueEl ? valueEl.getAttribute("data-kpi-value") : null;
+    }
+
+    function updateActiveKpiVisual() {
+      document.querySelectorAll(".dashboard-kpi").forEach(function (card) {
+        var key = getKpiKeyFromCard(card);
+        if (key && key === activeReportKpi) {
+          card.classList.add("is-active");
+        } else {
+          card.classList.remove("is-active");
+        }
+      });
+    }
+
+    function handleKpiTileClick(event) {
+      var card = event.target.closest(".dashboard-kpi");
+      if (!card) return;
+      var key = getKpiKeyFromCard(card);
+      if (!key) return;
+      if (key === "total") {
+        activeReportKpi = null;
+        reportFilters.forEach(function (control) { control.value = ""; });
+      } else if (activeReportKpi === key) {
+        activeReportKpi = null;
+      } else {
+        activeReportKpi = key;
+      }
+      updateActiveKpiVisual();
+      refreshReportDashboard();
     }
 
     function countBy(rows, field) {
@@ -830,6 +1043,32 @@
       });
     }
 
+    function countByGroupAndStack(rows, groupBy, stackBy) {
+      var groupSet = {};
+      var stackSet = {};
+      rows.forEach(function (record) {
+        var groupValue = record[groupBy] || "Not set";
+        var stackValue = record[stackBy] || "Not set";
+        groupSet[groupValue] = true;
+        stackSet[stackValue] = true;
+      });
+      var groupLabels = Object.keys(groupSet).sort();
+      var stackLabels = Object.keys(stackSet).sort();
+      var matrix = {};
+      stackLabels.forEach(function (stackLabel) {
+        matrix[stackLabel] = groupLabels.map(function () { return 0; });
+      });
+      rows.forEach(function (record) {
+        var groupValue = record[groupBy] || "Not set";
+        var stackValue = record[stackBy] || "Not set";
+        var groupIndex = groupLabels.indexOf(groupValue);
+        if (groupIndex !== -1) {
+          matrix[stackValue][groupIndex] += 1;
+        }
+      });
+      return { labels: groupLabels, stacks: stackLabels, matrix: matrix };
+    }
+
     function colorsFor(labels) {
       return labels.map(function (label, index) {
         return chartColors[label] || neutralPalette[index % neutralPalette.length];
@@ -841,7 +1080,95 @@
     }
 
     function normalizeChartType(type) {
-      return type === "horizontal" ? "bar" : type;
+      if (type === "horizontal") return "bar";
+      if (type === "stacked") return "bar";
+      return type;
+    }
+
+    function isRoundChart(type) {
+      return type === "doughnut" || type === "pie";
+    }
+
+    var chartValuesStorageKey = "defectTrackerShowChartValues";
+    var showChartValues = false;
+    try {
+      showChartValues = window.localStorage.getItem(chartValuesStorageKey) === "true";
+    } catch (e) {
+      showChartValues = false;
+    }
+
+    function persistChartValuesPreference() {
+      try {
+        window.localStorage.setItem(chartValuesStorageKey, showChartValues ? "true" : "false");
+      } catch (e) {
+        /* localStorage unavailable — fall through */
+      }
+    }
+
+    function getDataLabelsConfig(type, isStacked, configType) {
+      if (!showChartValues) {
+        return { display: false };
+      }
+      var base = {
+        display: true,
+        clamp: true,
+        clip: false,
+        color: "#0e1010",
+        font: { weight: "700", size: 11 },
+        formatter: function (value) {
+          return value === 0 || value == null ? "" : value;
+        }
+      };
+      if (isRoundChart(type)) {
+        return Object.assign({}, base, {
+          color: "#ffffff",
+          font: { weight: "700", size: 12 },
+          display: function (context) {
+            var dataset = context.chart.data.datasets[0];
+            var total = dataset.data.reduce(function (a, b) { return a + (b || 0); }, 0);
+            var value = dataset.data[context.dataIndex];
+            if (!value || !total) return false;
+            return (value / total) > 0.06;
+          }
+        });
+      }
+      if (isStacked) {
+        return Object.assign({}, base, {
+          color: "#ffffff",
+          anchor: "center",
+          align: "center",
+          display: function (context) {
+            var v = context.dataset.data[context.dataIndex];
+            return v && v > 0;
+          }
+        });
+      }
+      if (type === "line") {
+        return Object.assign({}, base, {
+          anchor: "end",
+          align: "top",
+          offset: 4,
+          display: function (context) {
+            var data = context.dataset.data;
+            var i = context.dataIndex;
+            if (i === data.length - 1) return true;
+            if (i === 0) return false;
+            return data[i] > data[i - 1] && data[i] > data[i + 1];
+          }
+        });
+      }
+      if (configType === "horizontal") {
+        return Object.assign({}, base, {
+          anchor: "end",
+          align: "right",
+          offset: 4
+        });
+      }
+      return Object.assign({}, base, {
+        anchor: "end",
+        align: "top",
+        offset: 2
+      });
     }
 
     function getReportChartConfig(card) {
@@ -856,6 +1183,7 @@
       var card = document.createElement("article");
       card.className = "report-chart-card";
       if (definition.span >= 8) card.classList.add("wide-chart");
+      else if (definition.span === 6) card.classList.add("half-chart");
       card.setAttribute("data-chart-id", id);
       card.innerHTML = '<div class="chart-title-row"><div><h3></h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div>';
       card.querySelector("h3").textContent = definition.title;
@@ -887,6 +1215,14 @@
       reportChartGrid.appendChild(card);
       renderReportChart(card, definition, getFilteredReportRecords());
       updateRestoreChartOptions();
+    }
+
+    function getCardSpan(card) {
+      var attr = Number(card.getAttribute("data-chart-span"));
+      if (attr) return attr;
+      if (card.classList.contains("wide-chart")) return 8;
+      if (card.classList.contains("half-chart")) return 6;
+      return 4;
     }
 
     function prepareReportChartCard(card) {
@@ -935,7 +1271,7 @@
         resizeHandle.className = "chart-resize-handle";
         resizeHandle.setAttribute("data-resize-report-chart", "");
         resizeHandle.setAttribute("aria-label", "Resize chart");
-        resizeHandle.title = "Resize chart";
+        resizeHandle.title = "Drag to resize";
         card.appendChild(resizeHandle);
       }
 
@@ -960,19 +1296,42 @@
       var meta = card.querySelector("[data-chart-meta]");
       var chartId = card.getAttribute("data-chart-instance-id") || card.getAttribute("data-chart-id") || ("chart-" + Date.now());
       var existingFallback = card.querySelector("[data-chart-fallback]");
-      var dataRows = config.groupBy === "aging" ? countAging(rows) : countBy(rows, config.groupBy);
-      var labels = dataRows.map(function (row) { return row.label; });
-      var values = dataRows.map(function (row) { return row.value; });
       var type = normalizeChartType(config.type);
-      var dataset = {
-        label: "Defects",
-        data: values,
-        backgroundColor: type === "line" ? "rgba(126, 166, 135, .25)" : colorsFor(labels),
-        borderColor: type === "line" ? "#23402a" : colorsFor(labels),
-        borderWidth: type === "line" ? 2 : 1,
-        fill: type === "line",
-        tension: .35
-      };
+      var isStacked = config.type === "stacked";
+      var labels;
+      var datasets;
+
+      if (isStacked) {
+        var stackBy = config.stackBy || "severity";
+        if (stackBy === config.groupBy) {
+          stackBy = config.groupBy === "severity" ? "status" : "severity";
+        }
+        var stackedData = countByGroupAndStack(rows, config.groupBy, stackBy);
+        labels = stackedData.labels;
+        datasets = stackedData.stacks.map(function (stackLabel, index) {
+          var color = chartColors[stackLabel] || neutralPalette[index % neutralPalette.length];
+          return {
+            label: stackLabel,
+            data: stackedData.matrix[stackLabel],
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1
+          };
+        });
+      } else {
+        var dataRows = config.groupBy === "aging" ? countAging(rows) : countBy(rows, config.groupBy);
+        labels = dataRows.map(function (row) { return row.label; });
+        var values = dataRows.map(function (row) { return row.value; });
+        datasets = [{
+          label: "Defects",
+          data: values,
+          backgroundColor: type === "line" ? "rgba(126, 166, 135, .25)" : colorsFor(labels),
+          borderColor: type === "line" ? "#23402a" : colorsFor(labels),
+          borderWidth: type === "line" ? 2 : 1,
+          fill: type === "line",
+          tension: .35
+        }];
+      }
 
       card.setAttribute("data-chart-instance-id", chartId);
       if (meta) meta.textContent = chartMetaText(rows);
@@ -997,21 +1356,43 @@
         reportChartInstances[chartId].destroy();
       }
 
+      var showLegend = isRoundChart(type) || isStacked;
+      var roundChart = isRoundChart(type);
+      var scales;
+      if (roundChart) {
+        scales = {};
+      } else if (isStacked) {
+        scales = {
+          x: { stacked: true, grid: { display: false }, ticks: { color: "#303635" } },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: "#303635" } }
+        };
+      } else {
+        scales = {
+          x: { grid: { display: false }, ticks: { color: "#303635" } },
+          y: { beginAtZero: true, ticks: { precision: 0, color: "#303635" } }
+        };
+      }
+      if (showChartValues && !roundChart) {
+        if (config.type === "horizontal") {
+          scales.x.grace = "10%";
+        } else {
+          scales.y.grace = "10%";
+        }
+      }
+
       reportChartInstances[chartId] = new Chart(canvas.getContext("2d"), {
         type: type,
-        data: { labels: labels, datasets: [dataset] },
+        data: { labels: labels, datasets: datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           indexAxis: config.type === "horizontal" ? "y" : "x",
           plugins: {
-            legend: { display: type === "doughnut", position: "bottom", labels: { boxWidth: 10, padding: 10 } },
-            tooltip: { displayColors: false }
+            legend: { display: showLegend, position: "bottom", labels: { boxWidth: 10, padding: 10 } },
+            tooltip: { displayColors: isStacked },
+            datalabels: getDataLabelsConfig(type, isStacked, config.type)
           },
-          scales: type === "doughnut" ? {} : {
-            x: { grid: { display: false }, ticks: { color: "#303635" } },
-            y: { beginAtZero: true, ticks: { precision: 0, color: "#303635" } }
-          }
+          scales: scales
         }
       });
     }
@@ -1059,13 +1440,29 @@
     }
 
     function sortedReportRows(rows) {
+      var severityWeights = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+      var priorityWeights = { P1: 4, P2: 3, P3: 2, P4: 1 };
       return rows.slice().sort(function (a, b) {
-        var left = a[reportSortKey] || "";
-        var right = b[reportSortKey] || "";
+        var left = a[reportSortKey];
+        var right = b[reportSortKey];
+        if (reportSortKey === "severity") {
+          var leftSev = severityWeights[left] || 0;
+          var rightSev = severityWeights[right] || 0;
+          return reportSortAsc ? leftSev - rightSev : rightSev - leftSev;
+        }
+        if (reportSortKey === "priority") {
+          var leftPri = priorityWeights[left] || 0;
+          var rightPri = priorityWeights[right] || 0;
+          return reportSortAsc ? leftPri - rightPri : rightPri - leftPri;
+        }
         if (typeof left === "number" && typeof right === "number") {
           return reportSortAsc ? left - right : right - left;
         }
-        return reportSortAsc ? String(left).localeCompare(String(right)) : String(right).localeCompare(String(left));
+        var leftStr = String(left == null ? "" : left);
+        var rightStr = String(right == null ? "" : right);
+        return reportSortAsc
+          ? leftStr.localeCompare(rightStr, undefined, { numeric: true, sensitivity: "base" })
+          : rightStr.localeCompare(leftStr, undefined, { numeric: true, sensitivity: "base" });
       });
     }
 
@@ -1073,8 +1470,19 @@
       reportTableBody.innerHTML = "";
       sortedReportRows(rows).forEach(function (record) {
         var row = document.createElement("tr");
-        appendReportCell(row, record.id);
-        appendReportCell(row, record.title, "report-title-cell");
+        var idCell = document.createElement("td");
+        var idLink = document.createElement("a");
+        idLink.className = "defect-id-link";
+        idLink.textContent = record.id;
+        var backTarget = window.location.pathname + window.location.search;
+        idLink.href = "defect_detail.html?id=" + encodeURIComponent(record.id) + "&back=" + encodeURIComponent(backTarget);
+        idCell.appendChild(idLink);
+        row.appendChild(idCell);
+        var titleCell = document.createElement("td");
+        titleCell.className = "report-title-cell";
+        titleCell.textContent = record.title;
+        titleCell.title = record.title;
+        row.appendChild(titleCell);
         appendReportCell(row, record.project);
         appendReportCell(row, record.environment);
         var severityCell = document.createElement("td");
@@ -1103,7 +1511,11 @@
       }
 
       if (reportResultCount) {
-        reportResultCount.textContent = rows.length + " defects";
+        if (rows.length === reportRecords.length) {
+          reportResultCount.textContent = rows.length + " defects";
+        } else {
+          reportResultCount.textContent = "Showing " + rows.length + " of " + reportRecords.length + " defects";
+        }
       }
     }
 
@@ -1112,6 +1524,7 @@
       renderReportKpis(rows);
       renderAllReportCharts(rows);
       renderReportTable(rows);
+      syncFiltersToUrl();
     }
 
     function toggleReportFilters() {
@@ -1127,31 +1540,59 @@
       reportFilters.forEach(function (control) {
         control.value = "";
       });
+      activeReportKpi = null;
+      updateActiveKpiVisual();
       refreshReportDashboard();
     }
 
-    function exportReportCsv() {
+    // Columns visible in the dashboard's defect summary table (kept in sync with dashboard.html thead).
+    var REPORT_VISIBLE_COLUMNS = ["id", "title", "project", "environment", "severity", "priority", "status", "assignedTo", "releaseVersion", "createdBy", "createdDate", "age"];
+    // Full superset of fields a defect record can carry. "All columns" exports this even if some fields
+    // are not yet populated in the static data layer — when richer data lands, the export grows automatically.
+    var REPORT_ALL_COLUMNS = ["id", "title", "description", "project", "environment", "severity", "priority", "status", "assignedTo", "createdBy", "createdDate", "releaseVersion", "deploymentDate", "fixDate", "closureDate", "age"];
+    var REPORT_COLUMN_LABELS = {
+      id: "Defect ID", title: "Title", description: "Description", project: "Project", environment: "Environment",
+      severity: "Severity", priority: "Priority", status: "Status", assignedTo: "Assigned To", createdBy: "Created By",
+      createdDate: "Created Date", releaseVersion: "Release Version", deploymentDate: "Release Deployment Date",
+      fixDate: "Fix Date", closureDate: "Closure Date", age: "Age"
+    };
+
+    function exportReportCsv(mode) {
       var rows = getFilteredReportRecords();
-      var columns = ["id", "title", "project", "environment", "severity", "priority", "status", "assignedTo", "releaseVersion", "createdBy", "createdDate", "age"];
+      var isAll = mode === "all";
+      var columns = isAll ? REPORT_ALL_COLUMNS : REPORT_VISIBLE_COLUMNS;
       var escapeCell = function (value) {
         var text = String(value == null ? "" : value).replace(/"/g, '""');
         return /[",\n]/.test(text) ? '"' + text + '"' : text;
       };
-      var csv = [columns.join(",")].concat(rows.map(function (record) {
+      var header = columns.map(function (column) { return escapeCell(REPORT_COLUMN_LABELS[column] || column); }).join(",");
+      var csv = [header].concat(rows.map(function (record) {
         return columns.map(function (column) { return escapeCell(record[column]); }).join(",");
       })).join("\n");
       var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = "defect_dashboard_filtered.csv";
+      link.download = isAll ? "defect_dashboard_all_columns.csv" : "defect_dashboard_current_view.csv";
       link.click();
       URL.revokeObjectURL(link.href);
+    }
+
+    function updateStackByVisibility() {
+      if (!reportChartStackRow) return;
+      var isStacked = reportChartTypeInput.value === "stacked";
+      if (isStacked) {
+        reportChartStackRow.removeAttribute("hidden");
+      } else {
+        reportChartStackRow.setAttribute("hidden", "");
+      }
     }
 
     function openReportChartModal() {
       reportChartTitleInput.value = "";
       reportChartTypeInput.value = "bar";
       reportChartGroupInput.value = "status";
+      if (reportChartStackInput) reportChartStackInput.value = "severity";
+      updateStackByVisibility();
       reportChartModal.classList.add("open");
       reportChartModal.setAttribute("aria-hidden", "false");
       reportChartTitleInput.focus();
@@ -1164,12 +1605,23 @@
 
     function addReportChart() {
       var groupBy = reportChartGroupInput.value;
-      var title = reportChartTitleInput.value.trim() || "Defects by " + (labelMap[groupBy] || groupBy);
+      var chartType = reportChartTypeInput.value;
+      var stackBy = reportChartStackInput ? reportChartStackInput.value : "severity";
+      var title = reportChartTitleInput.value.trim();
+      if (!title) {
+        if (chartType === "stacked") {
+          title = "Defects by " + (labelMap[groupBy] || groupBy) + " (stacked by " + (labelMap[stackBy] || stackBy) + ")";
+        } else {
+          title = "Defects by " + (labelMap[groupBy] || groupBy);
+        }
+      }
       var chartId = "custom-" + Date.now();
       var card = document.createElement("article");
       card.className = "report-chart-card";
       card.setAttribute("data-chart-id", chartId);
-      card.setAttribute("data-chart-config", JSON.stringify({ type: reportChartTypeInput.value, groupBy: groupBy }));
+      var configToSave = { type: chartType, groupBy: groupBy };
+      if (chartType === "stacked") configToSave.stackBy = stackBy;
+      card.setAttribute("data-chart-config", JSON.stringify(configToSave));
       card.innerHTML = '<div class="chart-title-row"><div><h3></h3><p class="chart-meta" data-chart-meta>All defects</p></div></div><div class="canvas-wrap"><canvas></canvas></div>';
       card.querySelector("h3").textContent = title;
       reportChartGrid.appendChild(card);
@@ -1200,8 +1652,28 @@
 
     if (toggleReportFiltersButton) toggleReportFiltersButton.addEventListener("click", toggleReportFilters);
     if (resetReportButton) resetReportButton.addEventListener("click", resetReportFilters);
-    if (exportReportButton) exportReportButton.addEventListener("click", exportReportCsv);
+    initExportSplit(document.querySelector("[data-export-split]"), exportReportCsv);
     if (openReportChartModalButton) openReportChartModalButton.addEventListener("click", openReportChartModal);
+    var dashboardKpiGrid = document.querySelector(".dashboard-kpi-grid");
+    if (dashboardKpiGrid) dashboardKpiGrid.addEventListener("click", handleKpiTileClick);
+
+    var chartValuesToggleButton = document.querySelector("[data-toggle-chart-values]");
+    function applyChartValuesButtonState() {
+      if (!chartValuesToggleButton) return;
+      chartValuesToggleButton.setAttribute("aria-pressed", showChartValues ? "true" : "false");
+      var labelText = showChartValues ? "Hide values on charts" : "Show values on charts";
+      chartValuesToggleButton.setAttribute("aria-label", labelText);
+      chartValuesToggleButton.title = labelText;
+    }
+    applyChartValuesButtonState();
+    if (chartValuesToggleButton) {
+      chartValuesToggleButton.addEventListener("click", function () {
+        showChartValues = !showChartValues;
+        persistChartValuesPreference();
+        applyChartValuesButtonState();
+        renderAllReportCharts(getFilteredReportRecords());
+      });
+    }
     if (restoreReportChartSelect) {
       restoreReportChartSelect.addEventListener("change", function () {
         if (!restoreReportChartSelect.value) return;
@@ -1210,6 +1682,7 @@
       });
     }
     if (saveReportChartButton) saveReportChartButton.addEventListener("click", addReportChart);
+    if (reportChartTypeInput) reportChartTypeInput.addEventListener("change", updateStackByVisibility);
     closeReportChartModalButtons.forEach(function (button) {
       button.addEventListener("click", closeReportChartModal);
     });
@@ -1378,7 +1851,7 @@
       var canvasWrap = card.querySelector(".canvas-wrap");
       var startX = event.clientX;
       var startY = event.clientY;
-      var initialSpan = Number(card.getAttribute("data-chart-span")) || (card.classList.contains("wide-chart") ? 8 : 4);
+      var initialSpan = getCardSpan(card);
       var initialHeight = canvasWrap.offsetHeight;
       var spanOptions = [4, 6, 8, 12];
 
@@ -1390,7 +1863,7 @@
         card.style.gridColumn = "span " + nextSpan;
         card.setAttribute("data-chart-span", String(nextSpan));
         canvasWrap.style.height = nextHeight + "px";
-        card.classList.remove("wide-chart");
+        card.classList.remove("wide-chart", "half-chart");
         resizeReportChartInstance(card);
       }
 
@@ -1405,6 +1878,7 @@
     });
 
     document.querySelector('[data-sort-key="createdDate"]').classList.add("sorted-desc");
+    applyUrlFilters();
     refreshReportDashboard();
   }
 
@@ -2239,6 +2713,51 @@
       });
       applyDefectFilters();
     });
+  }
+
+  // Export for defect_list. The page is currently static HTML, so both modes read from the same DOM
+  // rows. "All columns" is wired through the same dropdown for UI parity with the dashboard — when
+  // the data layer expands later, swap this function for one that reads from a record array and
+  // includes hidden fields (description, fixDate, closureDate, deploymentDate) without changing the UI.
+  var defectListExportButton = document.querySelector("[data-defect-list-export]");
+  var defectListExportSplit = document.querySelector("[data-export-split-defect-list]");
+  if (defectListExportButton || defectListExportSplit) {
+    var defectListTable = document.querySelector("[data-defect-list-table]");
+    function exportDefectListCsv(mode) {
+      if (!defectListTable) return;
+      var headerCells = Array.prototype.slice.call(defectListTable.querySelectorAll("thead th"));
+      var headers = headerCells.map(function (th) {
+        var clone = th.cloneNode(true);
+        // Remove the sort-arrow span so headers export cleanly.
+        var arrow = clone.querySelector(".sort-arrow, [data-sort-arrow]");
+        if (arrow) arrow.remove();
+        return clone.textContent.trim();
+      });
+      var bodyRows = Array.prototype.slice.call(defectListTable.querySelectorAll("tbody tr"))
+        .filter(function (row) { return !row.hidden; });
+      var escapeCell = function (value) {
+        var text = String(value == null ? "" : value).replace(/"/g, '""');
+        return /[",\n]/.test(text) ? '"' + text + '"' : text;
+      };
+      var rowsCsv = bodyRows.map(function (row) {
+        return Array.prototype.slice.call(row.cells).map(function (cell, idx) {
+          // First cell contains the ID link + pencil; export only the ID text.
+          if (idx === 0) {
+            var idLink = cell.querySelector(".defect-id-link");
+            return escapeCell(idLink ? idLink.textContent.trim() : cell.textContent.trim());
+          }
+          return escapeCell(cell.textContent.trim().replace(/\s+/g, " "));
+        }).join(",");
+      });
+      var csv = [headers.map(escapeCell).join(",")].concat(rowsCsv).join("\n");
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = mode === "all" ? "defects_all_columns.csv" : "defects_current_view.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    initExportSplit(defectListExportSplit, exportDefectListCsv);
   }
 
   var fallbackStepsEditor = document.querySelector("[data-steps-editor]");

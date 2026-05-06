@@ -2,6 +2,8 @@
 
 Static HTML/CSS/JS front-end for a defect tracking tool. Pure client-side — no build step required. Open `index.html` in a browser to start (it redirects to `dashboard.html`).
 
+> **Working on this project?** Read [`UI_CHANGELOG.md`](./UI_CHANGELOG.md) first — it captures every UI change with the *why*, *intent*, and *concept* behind it, plus the decisions we deliberately rejected. The change-log workflow is mandatory and is described in [`CLAUDE.md`](./CLAUDE.md).
+
 ## Pages
 
 - `index.html` — Landing / redirect to dashboard
