@@ -530,6 +530,16 @@ Future changes should follow these guardrails:
 - Use inline editing when data is simple and row-level.
 - Keep the product work-focused, not decorative.
 
+## Navigation And Account Pattern
+
+- The DT mark doubles as the product identity and the home action; clicking it routes users back to the dashboard.
+- The sidebar keeps context switching inside the user profile area so the main navigation remains focused on modules.
+- The profile menu exposes only the Phase 1 essentials: current user, data context, context switching, and logout.
+- Full menu restore uses the same arrow language, size, and rounded control treatment as the half-collapse control instead of showing a large text tab.
+- Spacing between the user profile and hide-menu control is intentionally preserved so the lower sidebar actions do not feel crowded.
+- When the sidebar is fully hidden, only the restore control is visible; the half-collapse control is suppressed to avoid duplicate arrows.
+- Context switching in the profile menu uses a compact account card with three calm sections: username, Context choices, and Logout. Sections are separated with the light grey brand divider; active context is indicated by text weight, not extra rails or underlines.
+
 ## Summary
 
 The current UI direction is a deliberately minimal QA defect management workspace with a premium monochrome identity, semantic red/green status language, stable operational controls, and enough structure to grow into a production Flask/PostgreSQL product.

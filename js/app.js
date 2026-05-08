@@ -366,9 +366,26 @@
   }
 
   if (appShell && sidebar) {
+    var brandLink = sidebar.querySelector(".brand");
+    if (brandLink) {
+      brandLink.setAttribute("role", "link");
+      brandLink.setAttribute("tabindex", "0");
+      brandLink.setAttribute("title", "Go to dashboard");
+      brandLink.setAttribute("aria-label", "Go to dashboard");
+      brandLink.addEventListener("click", function () {
+        window.location.href = "dashboard.html";
+      });
+      brandLink.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          window.location.href = "dashboard.html";
+        }
+      });
+    }
+
     var sidebarProfile = document.createElement("div");
     sidebarProfile.className = "sidebar-profile";
-    sidebarProfile.innerHTML = '<button class="sidebar-profile-trigger" type="button" aria-expanded="false" data-profile-trigger><span class="sidebar-profile-user">qa.user</span><span class="sidebar-profile-context" data-profile-context></span></button><div class="sidebar-profile-menu" data-profile-menu hidden><p class="profile-menu-label">Data context</p><button class="context-menu-option" type="button" data-profile-context-option="Test">Test</button><button class="context-menu-option" type="button" data-profile-context-option="Prod">Prod</button><button class="context-menu-option" type="button" data-profile-context-option="All">All</button><a class="profile-logout-link" href="login.html">Logout</a></div>';
+    sidebarProfile.innerHTML = '<button class="sidebar-profile-trigger" type="button" aria-expanded="false" data-profile-trigger><span class="sidebar-profile-user">qa.user</span><span class="sidebar-profile-separator">|</span><span class="sidebar-profile-context" data-profile-context></span></button><div class="sidebar-profile-menu" data-profile-menu hidden><div class="profile-menu-head"><strong>qa.user</strong></div><div class="profile-context-block"><span class="profile-context-label">Context</span><div class="profile-context-links" role="group" aria-label="Data context"><button class="context-menu-option" type="button" data-profile-context-option="Test">Test</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="Prod">Prod</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="All">All</button></div></div><a class="profile-logout-link" href="login.html">Logout</a></div>';
     sidebar.appendChild(sidebarProfile);
 
     var profileTrigger = sidebarProfile.querySelector("[data-profile-trigger]");
@@ -440,8 +457,10 @@
     sidebarRestoreTab = document.createElement("button");
     sidebarRestoreTab.type = "button";
     sidebarRestoreTab.className = "sidebar-restore-tab";
-    sidebarRestoreTab.textContent = "Menu";
+    sidebarRestoreTab.innerHTML = "&rsaquo;";
     sidebarRestoreTab.hidden = true;
+    sidebarRestoreTab.title = "Show menu";
+    sidebarRestoreTab.setAttribute("aria-label", "Show menu");
     sidebarRestoreTab.setAttribute("data-sidebar-restore", "");
     document.body.appendChild(sidebarRestoreTab);
 
