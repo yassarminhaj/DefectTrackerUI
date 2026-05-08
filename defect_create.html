@@ -40,7 +40,7 @@
             <div class="span-2"><label for="description">Description *</label><textarea id="description">The invoice total changes after refreshing the payment review screen in UAT.</textarea></div>
             <div><label for="project">Project *</label><select id="project"><option>Billing Core</option><option>Claims Portal</option><option>Mobile QA</option></select></div>
             <div><label for="module">Module / Component</label><input id="module" type="text" value="Invoice Review"></div>
-            <div><label for="environment">Environment Identified *</label><select id="environment"><option>UAT</option><option>DEV</option><option>SIT</option><option>Pre-Prod</option><option>PROD</option></select></div>
+            <div><label for="environment">Environment Identified *</label><select id="environment" data-context-environment-select></select></div>
             <div><label for="severity">Severity *</label><select id="severity"><option>Critical</option><option selected>High</option><option>Medium</option><option>Low</option></select></div>
             <div><label for="priority">Priority *</label><select id="priority"><option selected>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
             <div><label for="status">Status *</label><select id="status"><option>New</option><option selected>Assigned</option><option>In Progress</option><option>Fixed</option><option>Retest</option></select></div>
@@ -85,6 +85,7 @@
       </section>
     </main>
   </div>
+  <script src="js/sample-data.js"></script>
   <script src="js/app.js"></script>
   <script type="module">
     import { Editor } from "https://esm.sh/@tiptap/core";

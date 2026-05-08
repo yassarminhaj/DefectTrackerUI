@@ -25,7 +25,15 @@
         <input id="username" type="text" placeholder="qa.user">
         <label for="password">Password</label>
         <input id="password" type="password" placeholder="Password">
-        <a class="button button-primary u-full-width" href="dashboard.html">Login</a>
+        <div class="login-context-field">
+          <span class="login-context-label">Data Context</span>
+          <div class="login-context-toggle" data-login-context-group role="group" aria-label="Data context">
+            <button class="active" type="button" data-login-context="Test" aria-pressed="true"><strong>Test</strong><span>DEV, SIT, UAT</span></button>
+            <button type="button" data-login-context="Prod" aria-pressed="false"><strong>Prod</strong><span>PROD only</span></button>
+            <button type="button" data-login-context="All" aria-pressed="false"><strong>All</strong><span>Merged view</span></button>
+          </div>
+        </div>
+        <a class="button button-primary u-full-width" href="dashboard.html" data-login-link>Login</a>
         <p class="muted" data-form-message></p>
       </form>
     </section>
@@ -34,6 +42,7 @@
       <span>Solution By © Improve Software Labs</span>
     </p>
   </main>
+  <script src="js/sample-data.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

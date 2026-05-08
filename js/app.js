@@ -10,6 +10,50 @@
     navTarget = "defect_list.html";
   }
 
+  var contextStorageKey = "defectTrackerDataContext";
+  var dataSource = window.DefectTrackerData || {
+    contexts: ["Test", "Prod", "All"],
+    normalizeContext: function (context) { return ["Test", "Prod", "All"].indexOf(context) > -1 ? context : "Test"; },
+    getDefectsForContext: function () { return []; },
+    getEnvironmentsForContext: function () { return []; }
+  };
+
+  function normalizeDataContext(context) {
+    return dataSource.normalizeContext ? dataSource.normalizeContext(context) : (["Test", "Prod", "All"].indexOf(context) > -1 ? context : "Test");
+  }
+
+  function getStoredDataContext() {
+    try {
+      return normalizeDataContext(window.localStorage.getItem(contextStorageKey));
+    } catch (error) {
+      return "Test";
+    }
+  }
+
+  function setStoredDataContext(context) {
+    var nextContext = normalizeDataContext(context);
+    try {
+      window.localStorage.setItem(contextStorageKey, nextContext);
+    } catch (error) {
+      // Ignore storage errors in restricted browser modes.
+    }
+    return nextContext;
+  }
+
+  function getScopedDefectRecords() {
+    return (dataSource.getDefectsForContext ? dataSource.getDefectsForContext(getStoredDataContext()) : []).map(function (record) {
+      return Object.assign({ createdBy: "qa.user" }, record);
+    });
+  }
+
+  function getScopedEnvironments() {
+    return dataSource.getEnvironmentsForContext ? dataSource.getEnvironmentsForContext(getStoredDataContext()) : [];
+  }
+
+  function getContextLabel(context) {
+    return normalizeDataContext(context) + " Context";
+  }
+
   var loaderMessages = {
     "dashboard.html": "Preparing dashboard...",
     "defect_list.html": "Loading defects...",
@@ -88,6 +132,36 @@
   } else {
     window.addEventListener("load", hideLoader, { once: true });
   }
+
+  (function setupLoginContextSelector() {
+    var loginContextGroup = document.querySelector("[data-login-context-group]");
+    var loginLink = document.querySelector("[data-login-link]");
+    if (!loginContextGroup) return;
+    var selectedContext = "Test";
+
+    function renderLoginContext() {
+      Array.prototype.slice.call(loginContextGroup.querySelectorAll("[data-login-context]")).forEach(function (button) {
+        var isActive = button.getAttribute("data-login-context") === selectedContext;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
+    loginContextGroup.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-login-context]");
+      if (!button) return;
+      selectedContext = normalizeDataContext(button.getAttribute("data-login-context"));
+      renderLoginContext();
+    });
+
+    if (loginLink) {
+      loginLink.addEventListener("click", function () {
+        setStoredDataContext(selectedContext);
+      });
+    }
+
+    renderLoginContext();
+  })();
 
   (function setupDefectListSort() {
     var defectTable = document.querySelector("[data-defect-list-table]");
@@ -292,6 +366,69 @@
   }
 
   if (appShell && sidebar) {
+    var sidebarProfile = document.createElement("div");
+    sidebarProfile.className = "sidebar-profile";
+    sidebarProfile.innerHTML = '<button class="sidebar-profile-trigger" type="button" aria-expanded="false" data-profile-trigger><span class="sidebar-profile-user">qa.user</span><span class="sidebar-profile-context" data-profile-context></span></button><div class="sidebar-profile-menu" data-profile-menu hidden><p class="profile-menu-label">Data context</p><button class="context-menu-option" type="button" data-profile-context-option="Test">Test</button><button class="context-menu-option" type="button" data-profile-context-option="Prod">Prod</button><button class="context-menu-option" type="button" data-profile-context-option="All">All</button><a class="profile-logout-link" href="login.html">Logout</a></div>';
+    sidebar.appendChild(sidebarProfile);
+
+    var profileTrigger = sidebarProfile.querySelector("[data-profile-trigger]");
+    var profileMenu = sidebarProfile.querySelector("[data-profile-menu]");
+    var profileContextLabel = sidebarProfile.querySelector("[data-profile-context]");
+    var profileContextButtons = Array.prototype.slice.call(sidebarProfile.querySelectorAll("[data-profile-context-option]"));
+
+    function renderProfileContext() {
+      var activeContext = getStoredDataContext();
+      if (profileContextLabel) profileContextLabel.textContent = activeContext;
+      profileContextButtons.forEach(function (button) {
+        var isActive = button.getAttribute("data-profile-context-option") === activeContext;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
+    function closeProfileMenu() {
+      profileMenu.hidden = true;
+      profileTrigger.setAttribute("aria-expanded", "false");
+      document.removeEventListener("click", handleProfileOutsideClick, true);
+      document.removeEventListener("keydown", handleProfileKeydown, true);
+    }
+
+    function openProfileMenu() {
+      renderProfileContext();
+      profileMenu.hidden = false;
+      profileTrigger.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", handleProfileOutsideClick, true);
+      document.addEventListener("keydown", handleProfileKeydown, true);
+    }
+
+    function handleProfileOutsideClick(event) {
+      if (!sidebarProfile.contains(event.target)) closeProfileMenu();
+    }
+
+    function handleProfileKeydown(event) {
+      if (event.key === "Escape") closeProfileMenu();
+    }
+
+    profileTrigger.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (profileMenu.hidden) openProfileMenu();
+      else closeProfileMenu();
+    });
+
+    profileContextButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        var nextContext = setStoredDataContext(button.getAttribute("data-profile-context-option"));
+        renderProfileContext();
+        closeProfileMenu();
+        window.dispatchEvent(new CustomEvent("defectTrackerContextChanged", { detail: { context: nextContext } }));
+        if (current !== "login.html") {
+          window.location.reload();
+        }
+      });
+    });
+
+    renderProfileContext();
+
     var sidebarHideAction = document.createElement("button");
     sidebarHideAction.type = "button";
     sidebarHideAction.className = "sidebar-hide-action";
@@ -376,6 +513,20 @@
     });
   });
 
+  document.querySelectorAll("[data-context-environment-select]").forEach(function (select) {
+    var environments = getScopedEnvironments();
+    select.innerHTML = "";
+    environments.forEach(function (environment) {
+      var option = document.createElement("option");
+      option.value = environment.name;
+      option.textContent = environment.name;
+      select.appendChild(option);
+    });
+    if (!select.value && environments.length) {
+      select.value = environments[0].name;
+    }
+  });
+
   var modal = document.getElementById("previewModal");
   if (modal) {
     document.querySelectorAll("[data-preview]").forEach(function (button) {
@@ -429,18 +580,7 @@
   var chartModal = document.querySelector("[data-chart-modal]");
 
   if (dashboardTableBody && chartGrid && chartModal) {
-    var defectRecords = [
-      { id: "DF-1042", title: "Invoice total mismatch after tax recalculation", project: "Billing Core", environment: "UAT", severity: "High", priority: "P1", status: "In Progress", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-21" },
-      { id: "DF-1037", title: "Attachment preview fails for PNG screenshots", project: "Claims Portal", environment: "SIT", severity: "Medium", priority: "P2", status: "Assigned", assignedTo: "Omar Salem", releaseVersion: "2026.04", createdDate: "2026-04-18" },
-      { id: "DF-1029", title: "UAT users are logged out before timeout policy", project: "Claims Portal", environment: "UAT", severity: "Critical", priority: "P1", status: "Reopened", assignedTo: "Leena Faris", releaseVersion: "2026.03", createdDate: "2026-04-10" },
-      { id: "DF-1018", title: "Project filter does not persist after refresh", project: "Mobile QA", environment: "SIT", severity: "Low", priority: "P4", status: "Closed", assignedTo: "Fahad Noor", releaseVersion: "2026.02", createdDate: "2026-03-05" },
-      { id: "DF-1051", title: "Retest evidence missing from closure package", project: "Claims Portal", environment: "Pre-Prod", severity: "Medium", priority: "P2", status: "Retest", assignedTo: "Omar Salem", releaseVersion: "2026.04", createdDate: "2026-04-23" },
-      { id: "DF-1054", title: "Payment retry creates duplicate transaction note", project: "Billing Core", environment: "SIT", severity: "High", priority: "P1", status: "Fixed", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-24" },
-      { id: "DF-1057", title: "Mobile date picker allows invalid deployment date", project: "Mobile QA", environment: "DEV", severity: "Low", priority: "P3", status: "New", assignedTo: "Leena Faris", releaseVersion: "2026.03", createdDate: "2026-04-25" },
-      { id: "DF-1062", title: "Production incident summary missing assignee", project: "Claims Portal", environment: "PROD", severity: "Critical", priority: "P1", status: "Developer Rejected", assignedTo: "Fahad Noor", releaseVersion: "2026.04", createdDate: "2026-04-26" },
-      { id: "DF-1066", title: "Assigned again defects do not notify developers", project: "Billing Core", environment: "UAT", severity: "Medium", priority: "P2", status: "Assigned Again", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-26" },
-      { id: "DF-1070", title: "Configuration label is reported as a defect", project: "Mobile QA", environment: "UAT", severity: "Low", priority: "P4", status: "Not a Defect", assignedTo: "Omar Salem", releaseVersion: "2026.02", createdDate: "2026-04-27" }
-    ];
+    var defectRecords = getScopedDefectRecords();
     defectRecords.forEach(function (record) {
       record.createdBy = record.createdBy || "qa.user";
     });
@@ -786,24 +926,7 @@
 
   if (reportTableBody && reportChartGrid && reportChartModal) {
     var reportToday = new Date("2026-04-30T00:00:00");
-    var reportRecords = [
-      { id: "DF-1042", title: "Invoice total mismatch after tax recalculation", project: "Billing Core", environment: "UAT", severity: "High", priority: "P1", status: "In Progress", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-21" },
-      { id: "DF-1037", title: "Attachment preview fails for PNG screenshots", project: "Claims Portal", environment: "SIT", severity: "Medium", priority: "P2", status: "Assigned", assignedTo: "Omar Salem", releaseVersion: "2026.04", createdDate: "2026-04-18" },
-      { id: "DF-1029", title: "UAT users are logged out before timeout policy", project: "Claims Portal", environment: "UAT", severity: "Critical", priority: "P1", status: "Reopened", assignedTo: "Leena Faris", releaseVersion: "2026.03", createdDate: "2026-04-10" },
-      { id: "DF-1018", title: "Project filter does not persist after refresh", project: "Mobile QA", environment: "SIT", severity: "Low", priority: "P4", status: "Closed", assignedTo: "Fahad Noor", releaseVersion: "2026.02", createdDate: "2026-03-05" },
-      { id: "DF-1051", title: "Retest evidence missing from closure package", project: "Claims Portal", environment: "Pre-Prod", severity: "Medium", priority: "P2", status: "Retest", assignedTo: "Omar Salem", releaseVersion: "2026.04", createdDate: "2026-04-23" },
-      { id: "DF-1054", title: "Payment retry creates duplicate transaction note", project: "Billing Core", environment: "SIT", severity: "High", priority: "P1", status: "Fixed", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-24" },
-      { id: "DF-1057", title: "Mobile date picker allows invalid deployment date", project: "Mobile QA", environment: "DEV", severity: "Low", priority: "P3", status: "New", assignedTo: "Leena Faris", releaseVersion: "2026.03", createdDate: "2026-04-25" },
-      { id: "DF-1062", title: "Production incident summary missing assignee", project: "Claims Portal", environment: "PROD", severity: "Critical", priority: "P1", status: "Developer Rejected", assignedTo: "Fahad Noor", releaseVersion: "2026.04", createdDate: "2026-04-26" },
-      { id: "DF-1066", title: "Assigned again defects do not notify developers", project: "Billing Core", environment: "UAT", severity: "Medium", priority: "P2", status: "Assigned Again", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdDate: "2026-04-26" },
-      { id: "DF-1070", title: "Configuration label is reported as a defect", project: "Mobile QA", environment: "UAT", severity: "Low", priority: "P4", status: "Not a Defect", assignedTo: "Omar Salem", releaseVersion: "2026.02", createdDate: "2026-04-27" },
-      { id: "DF-1074", title: "Supplier upload accepts duplicate email across companies", project: "Claims Portal", environment: "UAT", severity: "High", priority: "P1", status: "New", assignedTo: "Fahad Noor", releaseVersion: "2026.05", createdDate: "2026-04-28" },
-      { id: "DF-1078", title: "Report export drops release deployment date", project: "Billing Core", environment: "UAT", severity: "Medium", priority: "P2", status: "Assigned", assignedTo: "Leena Faris", releaseVersion: "2026.05", createdDate: "2026-04-28" },
-      { id: "DF-1081", title: "Closed defect appears in open aging view", project: "Mobile QA", environment: "Pre-Prod", severity: "Medium", priority: "P3", status: "Closed", assignedTo: "Aisha Khan", releaseVersion: "2026.03", createdDate: "2026-04-12" },
-      { id: "DF-1086", title: "Search does not include actual result text", project: "Claims Portal", environment: "SIT", severity: "Low", priority: "P4", status: "Fixed", assignedTo: "Omar Salem", releaseVersion: "2026.05", createdDate: "2026-04-29" },
-      { id: "DF-1090", title: "Critical production issue cannot be reassigned", project: "Billing Core", environment: "PROD", severity: "Critical", priority: "P1", status: "In Progress", assignedTo: "Leena Faris", releaseVersion: "2026.05", createdDate: "2026-04-30" },
-      { id: "DF-1094", title: "Retest result saves without attachment evidence", project: "Mobile QA", environment: "UAT", severity: "High", priority: "P2", status: "Retest", assignedTo: "Fahad Noor", releaseVersion: "2026.05", createdDate: "2026-04-30" }
-    ];
+    var reportRecords = getScopedDefectRecords();
     reportRecords.forEach(function (record) {
       record.createdBy = record.createdBy || "qa.user";
     });
@@ -2711,6 +2834,141 @@
     });
   }
 
+  var simpleReportTableBody = document.querySelector("[data-simple-report-table-body]");
+  if (simpleReportTableBody) {
+    var simpleReportRecords = getScopedDefectRecords();
+    var simpleReportFilters = Array.prototype.slice.call(document.querySelectorAll("[data-simple-report-filter]"));
+    var runSimpleReportButton = document.querySelector("[data-run-simple-report]");
+
+    function uniqueSimpleReportValues(field) {
+      return Array.from(new Set(simpleReportRecords.map(function (record) {
+        return record[field];
+      }).filter(Boolean))).sort();
+    }
+
+    function fillSimpleReportSelect(field, placeholder) {
+      var select = document.querySelector('[data-simple-report-filter="' + field + '"]');
+      if (!select || select.tagName !== "SELECT") return;
+      select.innerHTML = "";
+      var first = document.createElement("option");
+      first.value = "";
+      first.textContent = placeholder;
+      select.appendChild(first);
+      uniqueSimpleReportValues(field).forEach(function (value) {
+        var option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    function getSimpleReportFilters() {
+      var filters = {};
+      simpleReportFilters.forEach(function (control) {
+        filters[control.getAttribute("data-simple-report-filter")] = control.value.trim();
+      });
+      return filters;
+    }
+
+    function getFilteredSimpleReportRecords() {
+      var filters = getSimpleReportFilters();
+      return simpleReportRecords.filter(function (record) {
+        if (filters.project && record.project !== filters.project) return false;
+        if (filters.environment && record.environment !== filters.environment) return false;
+        if (filters.status && record.status !== filters.status) return false;
+        if (filters.severity && record.severity !== filters.severity) return false;
+        if (filters.assignedTo && record.assignedTo !== filters.assignedTo) return false;
+        if (filters.releaseVersion && record.releaseVersion !== filters.releaseVersion) return false;
+        if (filters.from && record.createdDate < filters.from) return false;
+        if (filters.to && record.createdDate > filters.to) return false;
+        return true;
+      });
+    }
+
+    function daysBetween(start, end) {
+      if (!start || !end) return null;
+      var startDate = new Date(start + "T00:00:00");
+      var endDate = new Date(end + "T00:00:00");
+      return Math.max(0, Math.round((endDate - startDate) / 86400000));
+    }
+
+    function averageDays(rows, endField) {
+      var values = rows.map(function (record) {
+        return daysBetween(record.createdDate, record[endField]);
+      }).filter(function (value) {
+        return value !== null;
+      });
+      if (!values.length) return "0d";
+      return (values.reduce(function (sum, value) { return sum + value; }, 0) / values.length).toFixed(1) + "d";
+    }
+
+    function countDistinct(rows, field) {
+      return new Set(rows.map(function (record) { return record[field]; }).filter(Boolean)).size;
+    }
+
+    function highestCount(rows, field) {
+      var counts = {};
+      rows.forEach(function (record) {
+        var value = record[field] || "Not set";
+        counts[value] = (counts[value] || 0) + 1;
+      });
+      return Object.keys(counts).reduce(function (max, key) {
+        return Math.max(max, counts[key]);
+      }, 0);
+    }
+
+    function setSimpleReportMetric(name, value) {
+      var element = document.querySelector('[data-simple-report-metric="' + name + '"]');
+      if (element) element.textContent = value;
+    }
+
+    function appendSimpleReportCell(row, value) {
+      var cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    }
+
+    function renderSimpleReport() {
+      var rows = getFilteredSimpleReportRecords();
+      simpleReportTableBody.innerHTML = "";
+      setSimpleReportMetric("fixTime", averageDays(rows, "fixDate"));
+      setSimpleReportMetric("closureTime", averageDays(rows, "closureDate"));
+      setSimpleReportMetric("releaseCount", countDistinct(rows, "releaseVersion"));
+      setSimpleReportMetric("environmentCount", countDistinct(rows, "environment"));
+      setSimpleReportMetric("assigneeCount", highestCount(rows, "assignedTo"));
+
+      rows.forEach(function (record) {
+        var row = document.createElement("tr");
+        appendSimpleReportCell(row, "Defect Volume");
+        appendSimpleReportCell(row, record.project);
+        appendSimpleReportCell(row, record.environment);
+        appendSimpleReportCell(row, record.releaseVersion);
+        appendSimpleReportCell(row, 1);
+        appendSimpleReportCell(row, "-");
+        simpleReportTableBody.appendChild(row);
+      });
+
+      if (!rows.length) {
+        var emptyRow = document.createElement("tr");
+        var emptyCell = document.createElement("td");
+        emptyCell.colSpan = 6;
+        emptyCell.className = "chart-empty";
+        emptyCell.textContent = "No report rows match the selected context and filters.";
+        emptyRow.appendChild(emptyCell);
+        simpleReportTableBody.appendChild(emptyRow);
+      }
+    }
+
+    fillSimpleReportSelect("project", "All Projects");
+    fillSimpleReportSelect("environment", "All Environments");
+    fillSimpleReportSelect("status", "All Statuses");
+    fillSimpleReportSelect("severity", "All Severities");
+    fillSimpleReportSelect("assignedTo", "Anyone");
+    fillSimpleReportSelect("releaseVersion", "All Releases");
+    if (runSimpleReportButton) runSimpleReportButton.addEventListener("click", renderSimpleReport);
+    renderSimpleReport();
+  }
+
   var defectFilterPanel = document.querySelector(".defect-filter-panel");
   var defectFilterBody = document.querySelector("[data-defect-filter-body]");
   var toggleDefectFiltersButton = document.querySelector("[data-toggle-defect-filters]");
@@ -2718,7 +2976,133 @@
   var resetDefectFiltersButton = document.querySelector("[data-reset-defect-filters]");
   var defectFilterControls = Array.prototype.slice.call(document.querySelectorAll("[data-defect-filter]"));
   var defectResultCount = document.querySelector("[data-defect-result-count]");
-  var defectRows = Array.prototype.slice.call(document.querySelectorAll(".defect-filter-panel + .dashboard-section tbody tr"));
+  var defectListTable = document.querySelector("[data-defect-list-table]");
+  var defectListBody = defectListTable ? defectListTable.querySelector("tbody") : null;
+  var defectRows = [];
+
+  function getDefectBadgeClass(value, field) {
+    var key = String(value).toLowerCase().replace(/\s+/g, "-");
+    if (field === "severity") return "badge-" + key;
+    if (field === "status") {
+      var statusClasses = {
+        "new": "badge-new",
+        "assigned": "badge-assigned",
+        "in-progress": "badge-progress",
+        "fixed": "badge-fixed",
+        "retest": "badge-retest",
+        "closed": "badge-closed",
+        "reopened": "badge-reopened",
+        "developer-rejected": "badge-danger",
+        "not-a-defect": "badge-warning",
+        "assigned-again": "badge-assigned"
+      };
+      return statusClasses[key] || "badge-neutral";
+    }
+    return "badge-neutral";
+  }
+
+  function createDefectBadge(value, field) {
+    var badge = document.createElement("span");
+    badge.className = "badge " + getDefectBadgeClass(value, field);
+    badge.textContent = value;
+    return badge;
+  }
+
+  function appendDefectTextCell(row, value, title) {
+    var cell = document.createElement("td");
+    cell.textContent = value || "";
+    if (title) cell.title = title;
+    row.appendChild(cell);
+    return cell;
+  }
+
+  function createDefectIdCell(record) {
+    var cell = document.createElement("td");
+    var wrapper = document.createElement("span");
+    var viewLink = document.createElement("a");
+    var editLink = document.createElement("a");
+
+    cell.className = "defect-id-cell";
+    wrapper.className = "defect-id-cell-inner";
+    viewLink.className = "defect-id-link";
+    viewLink.href = "defect_detail.html?id=" + encodeURIComponent(record.id) + "&back=defect_list.html";
+    viewLink.textContent = record.id;
+    editLink.className = "defect-edit-icon";
+    editLink.href = "defect_edit.html?id=" + encodeURIComponent(record.id) + "&back=defect_list.html";
+    editLink.title = "Edit " + record.id;
+    editLink.setAttribute("aria-label", "Edit " + record.id);
+    editLink.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    wrapper.appendChild(viewLink);
+    wrapper.appendChild(editLink);
+    cell.appendChild(wrapper);
+    return cell;
+  }
+
+  function setDefectSelectOptions(name, placeholder, values) {
+    var select = document.querySelector('[data-defect-filter="' + name + '"]');
+    if (!select || select.tagName !== "SELECT") return;
+    select.innerHTML = "";
+    var placeholderOption = document.createElement("option");
+    placeholderOption.textContent = placeholder;
+    placeholderOption.value = "";
+    select.appendChild(placeholderOption);
+    values.forEach(function (value) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    });
+  }
+
+  function uniqueDefectValues(records, field) {
+    return Array.from(new Set(records.map(function (record) {
+      return record[field];
+    }).filter(Boolean))).sort();
+  }
+
+  function populateDefectFilterOptions(records) {
+    setDefectSelectOptions("project", "All Projects", uniqueDefectValues(records, "project"));
+    setDefectSelectOptions("environment", "All Environments", uniqueDefectValues(records, "environment"));
+    setDefectSelectOptions("status", "All Statuses", uniqueDefectValues(records, "status"));
+    setDefectSelectOptions("severity", "All Severities", uniqueDefectValues(records, "severity"));
+    setDefectSelectOptions("priority", "All Priorities", uniqueDefectValues(records, "priority"));
+    setDefectSelectOptions("assignedTo", "Anyone", uniqueDefectValues(records, "assignedTo"));
+    setDefectSelectOptions("releaseVersion", "All Releases", uniqueDefectValues(records, "releaseVersion"));
+  }
+
+  function renderDefectListRows(records) {
+    if (!defectListBody) return;
+    defectListBody.innerHTML = "";
+    records.forEach(function (record) {
+      var row = document.createElement("tr");
+      var severityCell = document.createElement("td");
+      var statusCell = document.createElement("td");
+      row.appendChild(createDefectIdCell(record));
+      appendDefectTextCell(row, record.title, record.title);
+      appendDefectTextCell(row, record.project);
+      appendDefectTextCell(row, record.environment);
+      severityCell.appendChild(createDefectBadge(record.severity, "severity"));
+      row.appendChild(severityCell);
+      appendDefectTextCell(row, record.priority);
+      statusCell.appendChild(createDefectBadge(record.status, "status"));
+      row.appendChild(statusCell);
+      appendDefectTextCell(row, record.assignedTo);
+      appendDefectTextCell(row, record.releaseVersion);
+      appendDefectTextCell(row, record.createdBy);
+      appendDefectTextCell(row, record.createdDate);
+      defectListBody.appendChild(row);
+    });
+    defectRows = Array.prototype.slice.call(defectListBody.querySelectorAll("tr"));
+    if (defectResultCount) {
+      defectResultCount.textContent = records.length + (records.length === 1 ? " record" : " records");
+    }
+  }
+
+  if (defectListTable && defectListBody) {
+    var scopedDefectListRecords = getScopedDefectRecords();
+    populateDefectFilterOptions(scopedDefectListRecords);
+    renderDefectListRows(scopedDefectListRecords);
+  }
 
   if (defectFilterPanel && defectFilterBody && toggleDefectFiltersButton) {
     toggleDefectFiltersButton.addEventListener("click", function () {

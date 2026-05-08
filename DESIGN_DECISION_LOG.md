@@ -324,6 +324,48 @@ Reasoning:
 - Showing password-related fields inline would clutter the table.
 - Roles, OTP, email confirmation, and advanced policy can come later.
 
+## Login Context And Data Scope
+
+The login experience should introduce a clear working context for the user:
+
+- `Test`
+- `Prod`
+- `All`
+
+Test represents all non-production environments such as DEV, SIT, UAT, Pre-Prod, and any future non-production environment. Prod represents only PROD. All represents a merged cross-context view for users who need a broader management or review picture.
+
+Reasoning:
+
+- Production defects should not be diluted by test-cycle defects.
+- Test defect health and production defect health answer different operational questions.
+- The dashboard total defect count, charts, reports, defect list, and filters should respect the active user context.
+- The current context should feel like part of the signed-in user profile, not just a temporary filter.
+- Context awareness keeps the product ready for backend authorization and reporting rules later.
+
+Static UI implementation direction:
+
+- Add a minimal, distinct Test / Prod / All context selector to the login page.
+- Default direct-page access to `Test` until real authentication exists.
+- Show the selected context inside a `qa.user` profile component in the sidebar area.
+- Keep the visible profile component compact: `qa.user` plus a small context badge.
+- Allow context switching from the profile component:
+  - `Test`
+  - `Prod`
+  - `All`
+- Include `Logout` in the same profile menu, routing back to the login page in the static prototype.
+- Restrict environment choices in Create Defect based on context:
+  - Test shows non-production environments.
+  - Prod shows only PROD.
+  - All allows the full environment list because the user still chooses the exact environment where the defect was found.
+- Read static sample data from `js/sample-data.js` so the prototype can filter consistently by context.
+- Dashboard, Defect List, Reports, and Create Defect should respect the active context from the shared data layer.
+- In the static UI, context switching refreshes the current page so the visible tables, cards, filters, charts, and environment dropdowns rehydrate from the selected scope.
+
+Backend implementation note:
+
+- In the Flask/PostgreSQL phase, the selected context should influence dashboard aggregates, defect list queries, reports, filters, and create/edit environment options.
+- The context should not be treated as a cosmetic filter only; it should become part of the data access and reporting model.
+
 ## Environments
 
 The environments page mirrors the simplified project management pattern.
@@ -394,7 +436,6 @@ Approved copy examples:
 - `Monitor defect health across projects, releases, environments, and assignees`
 - `Manage project coverage`
 - `Add and maintain project records`
-- `Manage application users`
 - `Add users, update account status, and reset passwords`
 - `Manage testing and release environments`
 - `Defect saved for review`
