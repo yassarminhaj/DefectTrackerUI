@@ -227,10 +227,39 @@ A living record of every UI change made during the **UI Freeze** phase. Each ent
 
 ## Open / Future Considerations (deferred)
 
-- **Sortable headers + dynamic data layer for `defect_list`** — current implementation sorts the static rows in place. When the page becomes JS-rendered from data, the same UI should drive a real data sort.
-- **Result-count phrasing parity** — defect_list shows static "4 records"; dashboard shows context-aware "Showing X of Y defects." Sync once defect_list goes dynamic.
+- **Server-side pagination after backend migration** — current pagination is client-side over the static sample data. Flask/PostgreSQL should preserve the same UX while moving sort/filter/page size into query parameters.
 - **Column show/hide UI** — explicitly *deferred*, not roadmapped. Only revisit if real users repeatedly request it.
 
 ---
 
 *Maintained by Claude during the UI Freeze phase. Every change to the UI must be appended here with the same shape: change, why, intent, concept.*
+
+---
+
+## Active Project Scoping For Defect Data
+
+**Change:** Added shared project records to `js/sample-data.js`, including active/inactive status. Added two `Legacy CRM` dummy defect records to prove the rule, then updated the shared defect data getter so inactive-project defects are excluded from scoped operational data.
+
+**Why:** Dashboard and defect-list views should reflect only active QA project scope. Inactive project defects may exist historically, but they should not inflate current health metrics or active work queues.
+
+**Intent:** Prepare the static UI for the backend rule we will need in Flask/PostgreSQL: project activity belongs in the data/query layer, not as a cosmetic filter on one page.
+
+**Concept:** *Active portfolio first; archived project data stays available without polluting operational health.*
+
+---
+
+## UI Closure Pass: Tables, Chart Spectrum, Pagination
+
+**Change:** Standardized operational table row height, reduced visual row drift between data and management tables, added pagination to the dashboard summary table and defect list, and made dashboard chart colors dimension-aware.
+
+**Why:** The final polish concerns were table density, occasional repeated chart colors between unrelated units, and long operational tables growing without page control.
+
+**Intent:** Make the last Phase 1 surfaces feel controlled and production-ready before backend work begins.
+
+**Concept:** *Stable density, distinct signals, controlled volume.*
+
+**Files touched:**
+- `dashboard.html` — pagination footer anchor for the dashboard table.
+- `defect_list.html` — pagination footer anchor and client-rendered table marker.
+- `js/app.js` — shared pagination renderer, dashboard table paging, defect-list data paging/sorting/export alignment, dimension-aware chart palettes.
+- `css/app.css` — table density tokens, stable row heights, pagination control styling.

@@ -29,6 +29,9 @@
   --control-x-padding: 12px;
   --control-border: var(--border);
   --control-focus-ring: color-mix(in srgb, var(--status-assigned) 62%, transparent);
+  --table-header-height: 44px;
+  --table-row-height: 54px;
+  --management-row-height: 64px;
 }
 
 * {
@@ -1999,11 +2002,13 @@ table {
 
 th,
 td {
-  padding: 14px 18px;
+  height: var(--table-row-height);
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
   white-space: nowrap;
+  line-height: 1.25;
 }
 
 th:first-child,
@@ -2020,6 +2025,9 @@ thead th {
   position: sticky;
   top: 0;
   z-index: 1;
+  height: var(--table-header-height);
+  padding-top: 8px;
+  padding-bottom: 8px;
   background: var(--primary);
   color: var(--surface);
   font-family: var(--font-sans);
@@ -2050,6 +2058,7 @@ tbody tr:hover .button:not(.button-primary) {
 }
 
 .management-table td {
+  height: var(--management-row-height);
   vertical-align: middle;
 }
 
@@ -2059,7 +2068,7 @@ tbody tr:hover .button:not(.button-primary) {
 
 .record-table tbody tr,
 .record-table td {
-  height: 80px;
+  height: var(--management-row-height);
 }
 
 .record-table td {
@@ -2177,8 +2186,9 @@ tbody tr:hover .button:not(.button-primary) {
 }
 
 .inline-edit-row td {
-  padding-top: 14px;
-  padding-bottom: 14px;
+  height: var(--management-row-height);
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .table-status-toggle {
@@ -2272,7 +2282,64 @@ tbody tr:hover .table-status-toggle button:not(.active) {
 }
 
 .inline-add-row td {
+  height: var(--management-row-height);
   border-bottom: 2px solid var(--primary);
+}
+
+.report-table tbody td {
+  height: var(--table-row-height);
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.attachment-table tbody td {
+  height: 48px;
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--surface-soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.table-pagination[hidden] {
+  display: none;
+}
+
+.table-pagination button {
+  min-height: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 30px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+}
+
+.table-pagination button:hover,
+.table-pagination button:focus-visible {
+  color: var(--text);
+  text-decoration-color: var(--text);
+  outline: none;
+}
+
+.table-pagination button:disabled {
+  color: color-mix(in srgb, var(--muted) 45%, transparent);
+  cursor: default;
+  text-decoration: none;
 }
 
 .inline-add-row:hover {

@@ -580,3 +580,28 @@ Marketing value:
 
 - This supports the product story of a calm, deliberate QA workspace.
 - It gives us a defensible detail to mention when speaking about design quality: even small operational controls were treated with precision.
+
+## Active Project Data Rule
+
+Operational defect views should report only active project scope.
+
+The shared static data now carries project status beside project names. Defect records can exist for inactive projects as archived/sample records, but dashboard and defect listing data are scoped through the shared data source so inactive-project defects do not affect current QA health counts, charts, filters, or tables.
+
+Why this matters for backend migration:
+
+- Project status becomes a data rule, not a visual-only badge.
+- Dashboard totals stay aligned with the active delivery portfolio.
+- Inactive project records can remain in storage for history without polluting active operational views.
+- The Flask/PostgreSQL implementation should preserve the same rule in query helpers or service-layer filters.
+
+## UI Closure Controls
+
+The last Phase 1 polish pass formalized three operational rules:
+
+- Tables use predictable row heights so scanning does not feel different from one module to another.
+- Dashboard charts choose colors by data dimension. Severity and priority keep the red scale, statuses keep semantic red/green assignments, and neutral business dimensions use distinct token-based variations so unrelated units do not accidentally share the same visual identity.
+- Operational tables use simple pagination once the result set exceeds the default page size. Exports remain based on the filtered result set, not only the currently visible page.
+
+Backend handoff note:
+
+- Pagination can later move to server-side query parameters, but the UX contract should remain the same: filters and sort reset to page one, counts describe the filtered result set, and export is not limited to the current page unless a future requirement explicitly says so.

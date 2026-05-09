@@ -177,6 +177,7 @@
   (function setupDefectListSort() {
     var defectTable = document.querySelector("[data-defect-list-table]");
     if (!defectTable) return;
+    if (defectTable.hasAttribute("data-client-pagination")) return;
     var tbody = defectTable.querySelector("tbody");
     if (!tbody) return;
     var headers = Array.prototype.slice.call(defectTable.querySelectorAll("th[data-sort-key]"));
@@ -276,6 +277,50 @@
       });
     });
   }
+
+  function getPagedRows(rows, page, pageSize) {
+    var start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }
+
+  function renderTablePagination(root, state, totalItems, itemLabel, onPageChange) {
+    if (!root) return;
+    var totalPages = Math.max(1, Math.ceil(totalItems / state.pageSize));
+    state.page = Math.min(Math.max(1, state.page), totalPages);
+    root.innerHTML = "";
+
+    if (totalItems <= state.pageSize) {
+      root.hidden = true;
+      return;
+    }
+
+    root.hidden = false;
+    var previous = document.createElement("button");
+    var next = document.createElement("button");
+    var summary = document.createElement("span");
+    previous.type = "button";
+    next.type = "button";
+    previous.textContent = "Previous";
+    next.textContent = "Next";
+    previous.disabled = state.page === 1;
+    next.disabled = state.page === totalPages;
+    summary.textContent = "Page " + state.page + " of " + totalPages;
+
+    previous.addEventListener("click", function () {
+      if (state.page <= 1) return;
+      onPageChange(state.page - 1);
+    });
+    next.addEventListener("click", function () {
+      if (state.page >= totalPages) return;
+      onPageChange(state.page + 1);
+    });
+
+    root.appendChild(previous);
+    root.appendChild(summary);
+    root.appendChild(next);
+    root.setAttribute("aria-label", itemLabel + " pagination");
+  }
+
   (function setupBackLink() {
     var backLinks = Array.prototype.slice.call(document.querySelectorAll("[data-back-link]"));
     var editDefectLink = document.querySelector("[data-edit-defect-link]");
@@ -1083,6 +1128,7 @@
     });
     var reportFilters = Array.prototype.slice.call(document.querySelectorAll("[data-report-filter]"));
     var reportResultCount = document.querySelector("[data-report-result-count]");
+    var reportPaginationRoot = document.querySelector("[data-report-pagination]");
     var reportFilterPanel = document.querySelector(".dashboard-filter-panel");
     var reportFilterBody = document.querySelector("[data-dashboard-filter-body]");
     var toggleReportFiltersButton = document.querySelector("[data-toggle-dashboard-filters]");
@@ -1108,6 +1154,7 @@
     };
     var reportSortKey = "createdDate";
     var reportSortAsc = false;
+    var reportPagination = { page: 1, pageSize: 10 };
     var activeReportKpi = null;
     var labelMap = {
       status: "Status",
@@ -1128,6 +1175,10 @@
       return "color-mix(in srgb, " + cssToken(name) + " " + amount + "%, transparent)";
     }
 
+    function mixChartColor(primaryToken, primaryAmount, secondaryToken) {
+      return "color-mix(in srgb, " + cssToken(primaryToken) + " " + primaryAmount + "%, " + cssToken(secondaryToken || "--surface") + ")";
+    }
+
     var chartColors = {
       Critical: cssToken("--sev-critical"),
       High: cssToken("--sev-high"),
@@ -1140,26 +1191,56 @@
       Retest: cssToken("--status-retest"),
       Closed: cssToken("--status-closed"),
       Reopened: cssToken("--status-reopened"),
-      "Developer Rejected": cssToken("--status-reopened"),
-      "Not a Defect": cssToken("--status-closed"),
-      "Assigned Again": cssToken("--status-assigned"),
+      "Developer Rejected": mixChartColor("--status-reopened", 72, "--sev-high"),
+      "Not a Defect": mixChartColor("--status-closed", 74, "--surface"),
+      "Assigned Again": mixChartColor("--status-assigned", 72, "--primary"),
       P1: cssToken("--sev-critical"),
       P2: cssToken("--sev-high"),
       P3: cssToken("--sev-medium"),
       P4: cssToken("--sev-low")
     };
-    var neutralPalette = [
-      cssToken("--status-closed"),
-      cssToken("--status-retest"),
-      cssToken("--status-in-progress"),
-      cssToken("--status-assigned"),
-      cssToken("--sev-critical"),
-      cssToken("--sev-high"),
-      cssToken("--sev-medium"),
-      cssToken("--sev-low"),
-      cssToken("--primary"),
-      cssToken("--muted")
-    ];
+    var dimensionColorPalettes = {
+      project: [
+        cssToken("--status-closed"),
+        mixChartColor("--status-retest", 88, "--surface"),
+        cssToken("--status-in-progress"),
+        mixChartColor("--status-assigned", 82, "--primary"),
+        mixChartColor("--sev-high", 78, "--surface"),
+        cssToken("--status-fixed")
+      ],
+      environment: [
+        cssToken("--status-new"),
+        cssToken("--status-assigned"),
+        cssToken("--status-in-progress"),
+        cssToken("--status-fixed"),
+        cssToken("--status-retest"),
+        cssToken("--status-closed")
+      ],
+      assignedTo: [
+        cssToken("--status-closed"),
+        mixChartColor("--status-in-progress", 76, "--surface"),
+        cssToken("--status-retest"),
+        mixChartColor("--status-assigned", 76, "--primary"),
+        mixChartColor("--sev-medium", 78, "--surface"),
+        mixChartColor("--sev-high", 80, "--surface")
+      ],
+      releaseVersion: [
+        mixChartColor("--status-new", 82, "--primary"),
+        cssToken("--status-assigned"),
+        cssToken("--status-in-progress"),
+        cssToken("--status-fixed"),
+        cssToken("--status-closed"),
+        mixChartColor("--sev-low", 82, "--primary")
+      ],
+      createdMonth: [
+        cssToken("--status-assigned"),
+        cssToken("--status-in-progress"),
+        cssToken("--status-retest"),
+        cssToken("--status-closed"),
+        mixChartColor("--sev-medium", 82, "--surface")
+      ]
+    };
+    var neutralPalette = dimensionColorPalettes.project.concat(dimensionColorPalettes.assignedTo);
 
     if (window.Chart) {
       Chart.defaults.font.family = cssToken("--font-sans");
@@ -1344,6 +1425,7 @@
       } else {
         activeReportKpi = key;
       }
+      reportPagination.page = 1;
       updateActiveKpiVisual();
       refreshReportDashboard();
     }
@@ -1398,9 +1480,15 @@
       return { labels: groupLabels, stacks: stackLabels, matrix: matrix };
     }
 
-    function colorsFor(labels) {
+    function colorForLabel(label, dimension, index) {
+      if (chartColors[label]) return chartColors[label];
+      var palette = dimensionColorPalettes[dimension] || neutralPalette;
+      return palette[index % palette.length];
+    }
+
+    function colorsFor(labels, dimension) {
       return labels.map(function (label, index) {
-        return chartColors[label] || neutralPalette[index % neutralPalette.length];
+        return colorForLabel(label, dimension, index);
       });
     }
 
@@ -1644,7 +1732,7 @@
         var stackedData = countByGroupAndStack(rows, config.groupBy, stackBy);
         labels = stackedData.labels;
         datasets = stackedData.stacks.map(function (stackLabel, index) {
-          var color = chartColors[stackLabel] || neutralPalette[index % neutralPalette.length];
+          var color = colorForLabel(stackLabel, stackBy, index);
           return {
             label: stackLabel,
             data: stackedData.matrix[stackLabel],
@@ -1657,11 +1745,12 @@
         var dataRows = config.groupBy === "aging" ? countAging(rows) : countBy(rows, config.groupBy);
         labels = dataRows.map(function (row) { return row.label; });
         var values = dataRows.map(function (row) { return row.value; });
+        var labelColors = colorsFor(labels, config.groupBy);
         datasets = [{
           label: "Defects",
           data: values,
-          backgroundColor: type === "line" ? tokenMix("--status-in-progress", 25) : colorsFor(labels),
-          borderColor: type === "line" ? cssToken("--status-in-progress") : colorsFor(labels),
+          backgroundColor: type === "line" ? tokenMix("--status-in-progress", 25) : labelColors,
+          borderColor: type === "line" ? cssToken("--status-in-progress") : labelColors,
           borderWidth: type === "line" ? 2 : 1,
           fill: type === "line",
           tension: .35
@@ -1862,7 +1951,13 @@
 
     function renderReportTable(rows) {
       reportTableBody.innerHTML = "";
-      sortedReportRows(rows).forEach(function (record) {
+      var sortedRows = sortedReportRows(rows);
+      var totalRows = sortedRows.length;
+      var totalPages = Math.max(1, Math.ceil(totalRows / reportPagination.pageSize));
+      reportPagination.page = Math.min(Math.max(1, reportPagination.page), totalPages);
+      var pageRows = getPagedRows(sortedRows, reportPagination.page, reportPagination.pageSize);
+
+      pageRows.forEach(function (record) {
         var row = document.createElement("tr");
         var idCell = document.createElement("td");
         var idLink = document.createElement("a");
@@ -1894,7 +1989,7 @@
         reportTableBody.appendChild(row);
       });
 
-      if (!rows.length) {
+      if (!totalRows) {
         var emptyRow = document.createElement("tr");
         var emptyCell = document.createElement("td");
         emptyCell.colSpan = 12;
@@ -1905,12 +2000,27 @@
       }
 
       if (reportResultCount) {
-        if (rows.length === reportRecords.length) {
-          reportResultCount.textContent = rows.length + " defects";
+        if (!totalRows) {
+          reportResultCount.textContent = "0 defects";
         } else {
-          reportResultCount.textContent = "Showing " + rows.length + " of " + reportRecords.length + " defects";
+          var start = ((reportPagination.page - 1) * reportPagination.pageSize) + 1;
+          var end = Math.min(start + pageRows.length - 1, totalRows);
+          if (totalRows === reportRecords.length) {
+            reportResultCount.textContent = "Showing " + start + "-" + end + " of " + totalRows + " defects";
+          } else {
+            reportResultCount.textContent = "Showing " + start + "-" + end + " of " + totalRows + " filtered defects";
+          }
         }
       }
+
+      renderTablePagination(reportPaginationRoot, reportPagination, totalRows, "Dashboard defects", function (page) {
+        reportPagination.page = page;
+        renderReportTable(getFilteredReportRecords());
+      });
+    }
+
+    function resetReportPagination() {
+      reportPagination.page = 1;
     }
 
     function refreshReportDashboard() {
@@ -1919,6 +2029,11 @@
       renderAllReportCharts(rows);
       renderReportTable(rows);
       syncFiltersToUrl();
+    }
+
+    function refreshReportDashboardFromNewCriteria() {
+      resetReportPagination();
+      refreshReportDashboard();
     }
 
     function toggleReportFilters() {
@@ -1936,7 +2051,7 @@
       });
       activeReportKpi = null;
       updateActiveKpiVisual();
-      refreshReportDashboard();
+      refreshReportDashboardFromNewCriteria();
     }
 
     // Columns visible in the dashboard's defect summary table (kept in sync with dashboard.html thead).
@@ -2024,8 +2139,8 @@
     }
 
     reportFilters.forEach(function (control) {
-      control.addEventListener("input", refreshReportDashboard);
-      control.addEventListener("change", refreshReportDashboard);
+      control.addEventListener("input", refreshReportDashboardFromNewCriteria);
+      control.addEventListener("change", refreshReportDashboardFromNewCriteria);
     });
 
     document.querySelectorAll("[data-sort-key]").forEach(function (header) {
@@ -2040,6 +2155,7 @@
           item.classList.remove("sorted-asc", "sorted-desc");
         });
         header.classList.add(reportSortAsc ? "sorted-asc" : "sorted-desc");
+        resetReportPagination();
         renderReportTable(getFilteredReportRecords());
       });
     });
@@ -3211,7 +3327,10 @@
   var defectResultCount = document.querySelector("[data-defect-result-count]");
   var defectListTable = document.querySelector("[data-defect-list-table]");
   var defectListBody = defectListTable ? defectListTable.querySelector("tbody") : null;
-  var defectRows = [];
+  var defectListPaginationRoot = document.querySelector("[data-defect-list-pagination]");
+  var defectListState = { page: 1, pageSize: 10, sortKey: "createdDate", sortAsc: false };
+  var defectListCurrentRecords = [];
+  var defectListHasRendered = false;
 
   function getDefectBadgeClass(value, field) {
     var key = String(value).toLowerCase().replace(/\s+/g, "-");
@@ -3303,10 +3422,51 @@
     setDefectSelectOptions("releaseVersion", "All Releases", uniqueDefectValues(records, "releaseVersion"));
   }
 
+  function sortedDefectListRecords(records) {
+    var severityWeights = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+    var priorityWeights = { P1: 4, P2: 3, P3: 2, P4: 1 };
+    return records.slice().sort(function (a, b) {
+      var left = a[defectListState.sortKey];
+      var right = b[defectListState.sortKey];
+      if (defectListState.sortKey === "severity") {
+        var leftSev = severityWeights[left] || 0;
+        var rightSev = severityWeights[right] || 0;
+        return defectListState.sortAsc ? leftSev - rightSev : rightSev - leftSev;
+      }
+      if (defectListState.sortKey === "priority") {
+        var leftPri = priorityWeights[left] || 0;
+        var rightPri = priorityWeights[right] || 0;
+        return defectListState.sortAsc ? leftPri - rightPri : rightPri - leftPri;
+      }
+      var leftStr = String(left == null ? "" : left);
+      var rightStr = String(right == null ? "" : right);
+      return defectListState.sortAsc
+        ? leftStr.localeCompare(rightStr, undefined, { numeric: true, sensitivity: "base" })
+        : rightStr.localeCompare(leftStr, undefined, { numeric: true, sensitivity: "base" });
+    });
+  }
+
+  function updateDefectSortHeaders() {
+    if (!defectListTable) return;
+    Array.prototype.slice.call(defectListTable.querySelectorAll("th[data-sort-key]")).forEach(function (header) {
+      var isActive = header.getAttribute("data-sort-key") === defectListState.sortKey;
+      header.classList.toggle("sorted-asc", isActive && defectListState.sortAsc);
+      header.classList.toggle("sorted-desc", isActive && !defectListState.sortAsc);
+    });
+  }
+
   function renderDefectListRows(records) {
     if (!defectListBody) return;
+    defectListCurrentRecords = records.slice();
+    defectListHasRendered = true;
     defectListBody.innerHTML = "";
-    records.forEach(function (record) {
+    var sortedRecords = sortedDefectListRecords(records);
+    var totalRows = sortedRecords.length;
+    var totalPages = Math.max(1, Math.ceil(totalRows / defectListState.pageSize));
+    defectListState.page = Math.min(Math.max(1, defectListState.page), totalPages);
+    var pageRows = getPagedRows(sortedRecords, defectListState.page, defectListState.pageSize);
+
+    pageRows.forEach(function (record) {
       var row = document.createElement("tr");
       var severityCell = document.createElement("td");
       var statusCell = document.createElement("td");
@@ -3325,16 +3485,51 @@
       appendDefectTextCell(row, record.createdDate);
       defectListBody.appendChild(row);
     });
-    defectRows = Array.prototype.slice.call(defectListBody.querySelectorAll("tr"));
-    if (defectResultCount) {
-      defectResultCount.textContent = records.length + (records.length === 1 ? " record" : " records");
+
+    if (!totalRows) {
+      var emptyRow = document.createElement("tr");
+      var emptyCell = document.createElement("td");
+      emptyCell.colSpan = 11;
+      emptyCell.className = "chart-empty";
+      emptyCell.textContent = "No defects match the selected filters.";
+      emptyRow.appendChild(emptyCell);
+      defectListBody.appendChild(emptyRow);
     }
+
+    if (defectResultCount) {
+      if (!totalRows) {
+        defectResultCount.textContent = "0 records";
+      } else {
+        var start = ((defectListState.page - 1) * defectListState.pageSize) + 1;
+        var end = Math.min(start + pageRows.length - 1, totalRows);
+        defectResultCount.textContent = "Showing " + start + "-" + end + " of " + totalRows + (totalRows === 1 ? " record" : " records");
+      }
+    }
+
+    renderTablePagination(defectListPaginationRoot, defectListState, totalRows, "Defect records", function (page) {
+      defectListState.page = page;
+      renderDefectListRows(defectListCurrentRecords);
+    });
+    updateDefectSortHeaders();
   }
 
   if (defectListTable && defectListBody) {
     var scopedDefectListRecords = getScopedDefectRecords();
     populateDefectFilterOptions(scopedDefectListRecords);
     renderDefectListRows(scopedDefectListRecords);
+    Array.prototype.slice.call(defectListTable.querySelectorAll("th[data-sort-key]")).forEach(function (header) {
+      header.addEventListener("click", function () {
+        var key = header.getAttribute("data-sort-key");
+        if (defectListState.sortKey === key) {
+          defectListState.sortAsc = !defectListState.sortAsc;
+        } else {
+          defectListState.sortKey = key;
+          defectListState.sortAsc = true;
+        }
+        defectListState.page = 1;
+        renderDefectListRows(defectListCurrentRecords);
+      });
+    });
   }
 
   if (defectFilterPanel && defectFilterBody && toggleDefectFiltersButton) {
@@ -3356,8 +3551,6 @@
   }
 
   function applyDefectFilters() {
-    if (!defectRows.length) return;
-
     var filters = {
       search: getDefectFilterValue("search"),
       project: getDefectFilterValue("project"),
@@ -3368,38 +3561,25 @@
       assignedTo: getDefectFilterValue("assignedTo"),
       releaseVersion: getDefectFilterValue("releaseVersion")
     };
-    var visibleCount = 0;
-
-    defectRows.forEach(function (row) {
-      var cells = row.cells;
+    var filteredRecords = scopedDefectListRecords.filter(function (record) {
       var rowData = {
-        search: row.innerText.toLowerCase(),
-        project: cells[2].innerText.trim().toLowerCase(),
-        environment: cells[3].innerText.trim().toLowerCase(),
-        severity: cells[4].innerText.trim().toLowerCase(),
-        priority: cells[5].innerText.trim().toLowerCase(),
-        status: cells[6].innerText.trim().toLowerCase(),
-        assignedTo: cells[7].innerText.trim().toLowerCase(),
-        releaseVersion: cells[8].innerText.trim().toLowerCase()
+        search: [record.id, record.title, record.project, record.environment, record.severity, record.priority, record.status, record.assignedTo, record.releaseVersion, record.createdBy, record.createdDate].join(" ").toLowerCase(),
+        project: String(record.project || "").toLowerCase(),
+        environment: String(record.environment || "").toLowerCase(),
+        severity: String(record.severity || "").toLowerCase(),
+        priority: String(record.priority || "").toLowerCase(),
+        status: String(record.status || "").toLowerCase(),
+        assignedTo: String(record.assignedTo || "").toLowerCase(),
+        releaseVersion: String(record.releaseVersion || "").toLowerCase()
       };
-      var isVisible = true;
-
-      Object.keys(filters).forEach(function (key) {
-        if (!filters[key]) return;
-        if (key === "search") {
-          isVisible = isVisible && rowData.search.indexOf(filters[key]) > -1;
-          return;
-        }
-        isVisible = isVisible && rowData[key] === filters[key];
+      return Object.keys(filters).every(function (key) {
+        if (!filters[key]) return true;
+        if (key === "search") return rowData.search.indexOf(filters[key]) > -1;
+        return rowData[key] === filters[key];
       });
-
-      row.hidden = !isVisible;
-      if (isVisible) visibleCount += 1;
     });
-
-    if (defectResultCount) {
-      defectResultCount.textContent = visibleCount + (visibleCount === 1 ? " matching record" : " matching records");
-    }
+    defectListState.page = 1;
+    renderDefectListRows(filteredRecords);
   }
 
   if (applyDefectFiltersButton) {
@@ -3424,33 +3604,32 @@
   var defectListExportSplit = document.querySelector("[data-export-split-defect-list]");
   if (defectListExportButton || defectListExportSplit) {
     var defectListTable = document.querySelector("[data-defect-list-table]");
+    var DEFECT_LIST_VISIBLE_COLUMNS = ["id", "title", "project", "environment", "severity", "priority", "status", "assignedTo", "releaseVersion", "createdBy", "createdDate"];
+    var DEFECT_LIST_ALL_COLUMNS = ["id", "title", "description", "project", "environment", "severity", "priority", "status", "assignedTo", "createdBy", "createdDate", "releaseVersion", "deploymentDate", "fixDate", "closureDate"];
+    var DEFECT_LIST_COLUMN_LABELS = {
+      id: "Defect ID", title: "Title", description: "Description", project: "Project", environment: "Environment",
+      severity: "Severity", priority: "Priority", status: "Status", assignedTo: "Assigned To", createdBy: "Created By",
+      createdDate: "Created Date", releaseVersion: "Release Version", deploymentDate: "Release Deployment Date",
+      fixDate: "Fix Date", closureDate: "Closure Date"
+    };
+
     function exportDefectListCsv(mode) {
       if (!defectListTable) return;
-      var headerCells = Array.prototype.slice.call(defectListTable.querySelectorAll("thead th"));
-      var headers = headerCells.map(function (th) {
-        var clone = th.cloneNode(true);
-        // Remove the sort-arrow span so headers export cleanly.
-        var arrow = clone.querySelector(".sort-arrow, [data-sort-arrow]");
-        if (arrow) arrow.remove();
-        return clone.textContent.trim();
-      });
-      var bodyRows = Array.prototype.slice.call(defectListTable.querySelectorAll("tbody tr"))
-        .filter(function (row) { return !row.hidden; });
+      var rows = sortedDefectListRecords(defectListHasRendered ? defectListCurrentRecords : getScopedDefectRecords());
+      var columns = mode === "all" ? DEFECT_LIST_ALL_COLUMNS : DEFECT_LIST_VISIBLE_COLUMNS;
       var escapeCell = function (value) {
         var text = String(value == null ? "" : value).replace(/"/g, '""');
         return /[",\n]/.test(text) ? '"' + text + '"' : text;
       };
-      var rowsCsv = bodyRows.map(function (row) {
-        return Array.prototype.slice.call(row.cells).map(function (cell, idx) {
-          // First cell contains the ID link + pencil; export only the ID text.
-          if (idx === 0) {
-            var idLink = cell.querySelector(".defect-id-link");
-            return escapeCell(idLink ? idLink.textContent.trim() : cell.textContent.trim());
-          }
-          return escapeCell(cell.textContent.trim().replace(/\s+/g, " "));
+      var header = columns.map(function (column) {
+        return escapeCell(DEFECT_LIST_COLUMN_LABELS[column] || column);
+      }).join(",");
+      var rowsCsv = rows.map(function (record) {
+        return columns.map(function (column) {
+          return escapeCell(record[column]);
         }).join(",");
       });
-      var csv = [headers.map(escapeCell).join(",")].concat(rowsCsv).join("\n");
+      var csv = [header].concat(rowsCsv).join("\n");
       var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);

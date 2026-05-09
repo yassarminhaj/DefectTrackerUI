@@ -7,6 +7,13 @@
     { name: "PROD", scope: "Prod", description: "Production defect tracking." }
   ];
 
+  var projects = [
+    { name: "Claims Portal", description: "Customer claim intake and processing workflow.", status: "Active" },
+    { name: "Billing Core", description: "Invoice, tax, and payment calculation services.", status: "Active" },
+    { name: "Mobile QA", description: "Mobile application regression and release testing.", status: "Active" },
+    { name: "Legacy CRM", description: "Legacy support and controlled maintenance.", status: "Inactive" }
+  ];
+
   var defects = [
     { id: "DF-1042", title: "Invoice total mismatch after tax recalculation", description: "Invoice total changes after refreshing the payment review screen.", project: "Billing Core", environment: "UAT", severity: "High", priority: "P1", status: "In Progress", assignedTo: "Aisha Khan", releaseVersion: "2026.04", createdBy: "qa.user", createdDate: "2026-04-21" },
     { id: "DF-1037", title: "Attachment preview fails for PNG screenshots", description: "Preview modal does not render PNG evidence files.", project: "Claims Portal", environment: "SIT", severity: "Medium", priority: "P2", status: "Assigned", assignedTo: "Omar Salem", releaseVersion: "2026.04", createdBy: "qa.user", createdDate: "2026-04-18" },
@@ -23,7 +30,9 @@
     { id: "DF-1081", title: "Closed defect appears in open aging view", description: "Closed record is still counted in open aging summary.", project: "Mobile QA", environment: "Pre-Prod", severity: "Medium", priority: "P3", status: "Closed", assignedTo: "Aisha Khan", releaseVersion: "2026.03", createdBy: "qa.user", createdDate: "2026-04-12", closureDate: "2026-04-20" },
     { id: "DF-1086", title: "Search does not include actual result text", description: "Defect search ignores actual result content.", project: "Claims Portal", environment: "SIT", severity: "Low", priority: "P4", status: "Fixed", assignedTo: "Omar Salem", releaseVersion: "2026.05", createdBy: "qa.user", createdDate: "2026-04-29", fixDate: "2026-05-01" },
     { id: "DF-1090", title: "Critical production issue cannot be reassigned", description: "Production defect ownership cannot be changed from detail view.", project: "Billing Core", environment: "PROD", severity: "Critical", priority: "P1", status: "In Progress", assignedTo: "Leena Faris", releaseVersion: "2026.05", createdBy: "qa.user", createdDate: "2026-04-30" },
-    { id: "DF-1094", title: "Retest result saves without attachment evidence", description: "Retest status can be saved without required evidence.", project: "Mobile QA", environment: "UAT", severity: "High", priority: "P2", status: "Retest", assignedTo: "Fahad Noor", releaseVersion: "2026.05", createdBy: "qa.user", createdDate: "2026-04-30" }
+    { id: "DF-1094", title: "Retest result saves without attachment evidence", description: "Retest status can be saved without required evidence.", project: "Mobile QA", environment: "UAT", severity: "High", priority: "P2", status: "Retest", assignedTo: "Fahad Noor", releaseVersion: "2026.05", createdBy: "qa.user", createdDate: "2026-04-30" },
+    { id: "DF-1098", title: "Legacy case search returns stale customer status", description: "Inactive project record used to validate active-project filtering.", project: "Legacy CRM", environment: "UAT", severity: "Low", priority: "P3", status: "New", assignedTo: "Omar Salem", releaseVersion: "2026.01", createdBy: "qa.user", createdDate: "2026-04-22" },
+    { id: "DF-1101", title: "Legacy production export times out", description: "Inactive production project record kept out of operational dashboards.", project: "Legacy CRM", environment: "PROD", severity: "High", priority: "P2", status: "In Progress", assignedTo: "Aisha Khan", releaseVersion: "2026.01", createdBy: "qa.user", createdDate: "2026-04-29" }
   ];
 
   function normalizeContext(context) {
@@ -36,6 +45,17 @@
 
   function cloneRecord(record) {
     return Object.assign({}, record);
+  }
+
+  function cloneProject(project) {
+    return Object.assign({}, project);
+  }
+
+  function isActiveProject(projectName) {
+    var project = projects.find(function (item) {
+      return item.name === projectName;
+    });
+    return !project || project.status === "Active";
   }
 
   function getEnvironmentsForContext(context) {
@@ -52,19 +72,27 @@
   function getDefectsForContext(context) {
     var activeContext = normalizeContext(context);
     return defects.filter(function (defect) {
+      if (!isActiveProject(defect.project)) return false;
       if (activeContext === "All") return true;
       if (activeContext === "Prod") return isProdEnvironment(defect.environment);
       return !isProdEnvironment(defect.environment);
     }).map(cloneRecord);
   }
 
+  function getProjects() {
+    return projects.map(cloneProject);
+  }
+
   window.DefectTrackerData = {
     contexts: ["Test", "Prod", "All"],
     defects: defects,
     environments: environments,
+    projects: projects,
     normalizeContext: normalizeContext,
     isProdEnvironment: isProdEnvironment,
+    isActiveProject: isActiveProject,
     getDefectsForContext: getDefectsForContext,
-    getEnvironmentsForContext: getEnvironmentsForContext
+    getEnvironmentsForContext: getEnvironmentsForContext,
+    getProjects: getProjects
   };
 })();
