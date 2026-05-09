@@ -511,6 +511,7 @@ Safe marketing claims at this stage:
 - The prototype includes dashboard, defect list, create defect, detail, project, user, environment, workflow, and report surfaces.
 - The design system uses semantic status colors and a restrained monochrome foundation.
 - The workflow direction supports visual transition thinking.
+- Icon-only controls use SVG glyphs instead of font characters so menu, chart, export, and workflow controls remain optically centered and precise.
 - The UI is prepared for future Flask/PostgreSQL implementation.
 
 Claims to avoid until backend exists:
@@ -561,3 +562,21 @@ The UI is no longer just a static collection of pages. It has a product point of
 - The UI should feel calm, premium, and deliberate.
 
 That is the design story worth preserving as the product moves toward implementation.
+
+## Icon Craft Decision
+
+Tiny controls carry a lot of perceived quality in this interface.
+
+We replaced text glyphs such as chevrons, close marks, grip marks, and small carets with SVG icons where the control is icon-only. This keeps the design minimal while avoiding font-metric drift that can make symbols look slightly off center.
+
+The rule going forward:
+
+- Use SVG for icon-only actions.
+- Keep the same monochrome theme.
+- Do not introduce decorative icon libraries.
+- Prefer simple line icons that center reliably inside fixed-size controls.
+
+Marketing value:
+
+- This supports the product story of a calm, deliberate QA workspace.
+- It gives us a defensible detail to mention when speaking about design quality: even small operational controls were treated with precision.

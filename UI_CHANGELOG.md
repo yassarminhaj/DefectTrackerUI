@@ -202,6 +202,29 @@ A living record of every UI change made during the **UI Freeze** phase. Each ent
 
 ---
 
+### 10. SVG icon-only controls for optical centering
+
+**Change:** Replaced font/text glyphs in icon-only controls with SVG icons:
+
+- Sidebar collapse and restore chevrons.
+- Dashboard chart move grip.
+- Dashboard chart remove action.
+- Export split caret.
+- Workflow zoom controls.
+
+**Why:** Text glyphs such as `x`, `::`, and chevrons have uneven font metrics. Even when CSS centers them mathematically, they can look visually off center inside small controls.
+
+**Concept:** *Operational controls should feel precise.* SVG icons preserve the minimal design language while improving optical centering and perceived product quality.
+
+**Files touched:**
+- `*.html` sidebar toggle and export caret markup.
+- `status_workflow.html` workflow zoom icon markup.
+- `js/app.js` dynamic chart and sidebar icon rendering.
+- `css/app.css` shared icon-only alignment rules.
+- `DESIGN_DECISION_LOG_V2.md` and `STYLE_SYSTEM_MAPPING.md` decision tracking.
+
+---
+
 ## Open / Future Considerations (deferred)
 
 - **Sortable headers + dynamic data layer for `defect_list`** — current implementation sorts the static rows in place. When the page becomes JS-rendered from data, the same UI should drive a real data sort.

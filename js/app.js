@@ -17,6 +17,17 @@
     getDefectsForContext: function () { return []; },
     getEnvironmentsForContext: function () { return []; }
   };
+  var uiIcons = {
+    chevronLeft: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+    chevronRight: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="1.8"/><circle cx="15" cy="8" r="1.8"/><circle cx="9" cy="16" r="1.8"/><circle cx="15" cy="16" r="1.8"/></svg>',
+    close: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    resize: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 16l8-8M13 17l4-4"/></svg>'
+  };
+
+  function setIconContent(element, iconMarkup) {
+    if (element) element.innerHTML = iconMarkup;
+  }
 
   function normalizeDataContext(context) {
     return dataSource.normalizeContext ? dataSource.normalizeContext(context) : (["Test", "Prod", "All"].indexOf(context) > -1 ? context : "Test");
@@ -348,7 +359,7 @@
       sidebarToggle.title = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
     }
     if (sidebarToggleIcon) {
-      sidebarToggleIcon.innerHTML = isCollapsed ? "&rsaquo;" : "&lsaquo;";
+      setIconContent(sidebarToggleIcon, isCollapsed ? uiIcons.chevronRight : uiIcons.chevronLeft);
     }
     if (sidebarRestoreTab) {
       sidebarRestoreTab.classList.toggle("is-visible", isHidden);
@@ -385,13 +396,109 @@
 
     var sidebarProfile = document.createElement("div");
     sidebarProfile.className = "sidebar-profile";
-    sidebarProfile.innerHTML = '<button class="sidebar-profile-trigger" type="button" aria-expanded="false" data-profile-trigger><span class="sidebar-profile-user">qa.user</span><span class="sidebar-profile-separator">|</span><span class="sidebar-profile-context" data-profile-context></span></button><div class="sidebar-profile-menu" data-profile-menu hidden><div class="profile-menu-head"><strong>qa.user</strong></div><div class="profile-context-block"><span class="profile-context-label">Context</span><div class="profile-context-links" role="group" aria-label="Data context"><button class="context-menu-option" type="button" data-profile-context-option="Test">Test</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="Prod">Prod</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="All">All</button></div></div><a class="profile-logout-link" href="login.html">Logout</a></div>';
+    sidebarProfile.innerHTML = '<button class="sidebar-profile-trigger" type="button" aria-expanded="false" data-profile-trigger><span class="sidebar-profile-user">qa.user</span><span class="sidebar-profile-separator">|</span><span class="sidebar-profile-context" data-profile-context></span></button><div class="sidebar-profile-menu" data-profile-menu hidden><div class="profile-menu-head"><strong>qa.user</strong><button class="profile-icon-button" type="button" title="Open profile" aria-label="Open profile" data-open-profile-modal><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></button></div><div class="profile-context-block"><span class="profile-context-label">Context</span><div class="profile-context-links" role="group" aria-label="Data context"><button class="context-menu-option" type="button" data-profile-context-option="Test">Test</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="Prod">Prod</button><span aria-hidden="true">|</span><button class="context-menu-option" type="button" data-profile-context-option="All">All</button></div></div><a class="profile-menu-action profile-logout-link" href="login.html">Logout</a></div>';
     sidebar.appendChild(sidebarProfile);
 
     var profileTrigger = sidebarProfile.querySelector("[data-profile-trigger]");
     var profileMenu = sidebarProfile.querySelector("[data-profile-menu]");
     var profileContextLabel = sidebarProfile.querySelector("[data-profile-context]");
     var profileContextButtons = Array.prototype.slice.call(sidebarProfile.querySelectorAll("[data-profile-context-option]"));
+    var openProfileModalButton = sidebarProfile.querySelector("[data-open-profile-modal]");
+    var profileEmailStorageKey = "defectTrackerProfileEmail";
+
+    function getStoredProfileEmail() {
+      try {
+        return window.localStorage.getItem(profileEmailStorageKey) || "qa.user@improvesoftwarelabs.com";
+      } catch (error) {
+        return "qa.user@improvesoftwarelabs.com";
+      }
+    }
+
+    function setStoredProfileEmail(email) {
+      try {
+        window.localStorage.setItem(profileEmailStorageKey, email);
+      } catch (error) {
+        // Ignore storage errors in restricted browser modes.
+      }
+    }
+
+    function ensureProfileModal() {
+      var existing = document.getElementById("profileModal");
+      if (existing) return existing;
+      var modal = document.createElement("div");
+      modal.id = "profileModal";
+      modal.className = "modal profile-modal";
+      modal.setAttribute("aria-hidden", "true");
+      modal.innerHTML = '<div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle"><div class="modal-title-row"><div><h2 id="profileModalTitle">Profile</h2><p class="modal-subtitle">Update account contact and password details.</p></div></div><div class="profile-modal-summary"><strong>qa.user</strong></div><div class="profile-form-grid"><div><label for="profileEmail">Email</label><input id="profileEmail" type="email" data-profile-email></div><div><label for="profileCurrentPassword">Current Password</label><input id="profileCurrentPassword" type="password" data-profile-current-password></div><div><label for="profileNewPassword">New Password</label><input id="profileNewPassword" type="password" data-profile-new-password></div><div><label for="profileConfirmPassword">Confirm Password</label><input id="profileConfirmPassword" type="password" data-profile-confirm-password></div></div><p class="modal-message" data-profile-message></p><div class="modal-actions"><button type="button" data-close-profile-modal>Cancel</button><button class="button-primary" type="button" data-save-profile>Save Profile</button></div></div>';
+      document.body.appendChild(modal);
+      return modal;
+    }
+
+    function openProfileModal() {
+      var modal = ensureProfileModal();
+      var emailInput = modal.querySelector("[data-profile-email]");
+      var message = modal.querySelector("[data-profile-message]");
+      if (emailInput) emailInput.value = getStoredProfileEmail();
+      Array.prototype.slice.call(modal.querySelectorAll("input[type='password']")).forEach(function (input) {
+        input.value = "";
+      });
+      if (message) {
+        message.textContent = "";
+        message.classList.remove("is-error", "is-success");
+      }
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      if (emailInput) emailInput.focus();
+    }
+
+    function closeProfileModal() {
+      var modal = document.getElementById("profileModal");
+      if (!modal) return;
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function setProfileMessage(modal, text, state) {
+      var message = modal.querySelector("[data-profile-message]");
+      if (!message) return;
+      message.textContent = text || "";
+      message.classList.toggle("is-error", state === "error");
+      message.classList.toggle("is-success", state === "success");
+    }
+
+    function saveProfileModal() {
+      var modal = ensureProfileModal();
+      var emailInput = modal.querySelector("[data-profile-email]");
+      var currentPassword = modal.querySelector("[data-profile-current-password]");
+      var newPassword = modal.querySelector("[data-profile-new-password]");
+      var confirmPassword = modal.querySelector("[data-profile-confirm-password]");
+      var email = emailInput ? emailInput.value.trim() : "";
+      var wantsPasswordChange = [currentPassword, newPassword, confirmPassword].some(function (input) {
+        return input && input.value.trim();
+      });
+
+      if (!email) {
+        setProfileMessage(modal, "Email is required.", "error");
+        if (emailInput) emailInput.focus();
+        return;
+      }
+
+      if (wantsPasswordChange) {
+        if (!currentPassword.value.trim() || !newPassword.value.trim() || !confirmPassword.value.trim()) {
+          setProfileMessage(modal, "Enter current password, new password, and confirmation.", "error");
+          return;
+        }
+        if (newPassword.value.trim() !== confirmPassword.value.trim()) {
+          setProfileMessage(modal, "New password and confirmation must match.", "error");
+          confirmPassword.focus();
+          return;
+        }
+      }
+
+      setStoredProfileEmail(email);
+      setProfileMessage(modal, wantsPasswordChange ? "Profile and password updated for the prototype." : "Profile email updated for the prototype.", "success");
+      window.setTimeout(closeProfileModal, 700);
+    }
 
     function renderProfileContext() {
       var activeContext = getStoredDataContext();
@@ -432,6 +539,28 @@
       else closeProfileMenu();
     });
 
+    if (openProfileModalButton) {
+      openProfileModalButton.addEventListener("click", function () {
+        closeProfileMenu();
+        openProfileModal();
+      });
+    }
+
+    document.addEventListener("click", function (event) {
+      var modal = document.getElementById("profileModal");
+      if (!modal) return;
+      if (event.target === modal || event.target.closest("[data-close-profile-modal]")) {
+        closeProfileModal();
+      }
+      if (event.target.closest("[data-save-profile]")) {
+        saveProfileModal();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeProfileModal();
+    });
+
     profileContextButtons.forEach(function (button) {
       button.addEventListener("click", function () {
         var nextContext = setStoredDataContext(button.getAttribute("data-profile-context-option"));
@@ -457,7 +586,7 @@
     sidebarRestoreTab = document.createElement("button");
     sidebarRestoreTab.type = "button";
     sidebarRestoreTab.className = "sidebar-restore-tab";
-    sidebarRestoreTab.innerHTML = "&rsaquo;";
+    sidebarRestoreTab.innerHTML = uiIcons.chevronRight;
     sidebarRestoreTab.hidden = true;
     sidebarRestoreTab.title = "Show menu";
     sidebarRestoreTab.setAttribute("aria-label", "Show menu");
@@ -475,24 +604,27 @@
     }
     setSidebarMode(savedSidebarMode);
 
-    sidebarHideAction.addEventListener("click", function () {
+    sidebarHideAction.addEventListener("click", function (event) {
       setSidebarMode("hidden");
       saveSidebarMode("hidden");
       refreshAfterSidebarChange();
+      if (event.detail) sidebarHideAction.blur();
     });
 
-    sidebarRestoreTab.addEventListener("click", function () {
+    sidebarRestoreTab.addEventListener("click", function (event) {
       setSidebarMode("expanded");
       saveSidebarMode("expanded");
       refreshAfterSidebarChange();
+      if (event.detail) sidebarRestoreTab.blur();
     });
 
-    if (sidebarToggle) sidebarToggle.addEventListener("click", function () {
+    if (sidebarToggle) sidebarToggle.addEventListener("click", function (event) {
       var nextCollapsed = !appShell.classList.contains("sidebar-collapsed");
       var nextMode = nextCollapsed ? "collapsed" : "expanded";
       setSidebarMode(nextMode);
       saveSidebarMode(nextMode);
       refreshAfterSidebarChange();
+      if (event.detail) sidebarToggle.blur();
     });
 
     window.requestAnimationFrame(function () {
@@ -635,8 +767,8 @@
           "retest": "badge-retest",
           "closed": "badge-closed",
           "reopened": "badge-reopened",
-          "developer-rejected": "badge-danger",
-          "not-a-defect": "badge-warning",
+          "developer-rejected": "badge-reopened",
+          "not-a-defect": "badge-closed",
           "assigned-again": "badge-assigned"
         };
         return statusClasses[key] || "badge-neutral";
@@ -987,32 +1119,52 @@
       releaseVersion: "Release Version",
       createdMonth: "Created Month"
     };
+
+    function cssToken(name) {
+      return window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function tokenMix(name, amount) {
+      return "color-mix(in srgb, " + cssToken(name) + " " + amount + "%, transparent)";
+    }
+
     var chartColors = {
-      Critical: "#5c1c1c",
-      High: "#b83737",
-      Medium: "#c65f5f",
-      Low: "#dc9b9b",
-      New: "#b5ccbb",
-      Assigned: "#7ea687",
-      "In Progress": "#b5ccbb",
-      Fixed: "#7ea687",
-      Retest: "#dc9b9b",
-      Closed: "#23402a",
-      Reopened: "#5c1c1c",
-      "Developer Rejected": "#b83737",
-      "Not a Defect": "#c65f5f",
-      "Assigned Again": "#7ea687",
-      P1: "#5c1c1c",
-      P2: "#b83737",
-      P3: "#c65f5f",
-      P4: "#dc9b9b"
+      Critical: cssToken("--sev-critical"),
+      High: cssToken("--sev-high"),
+      Medium: cssToken("--sev-medium"),
+      Low: cssToken("--sev-low"),
+      New: cssToken("--status-new"),
+      Assigned: cssToken("--status-assigned"),
+      "In Progress": cssToken("--status-in-progress"),
+      Fixed: cssToken("--status-fixed"),
+      Retest: cssToken("--status-retest"),
+      Closed: cssToken("--status-closed"),
+      Reopened: cssToken("--status-reopened"),
+      "Developer Rejected": cssToken("--status-reopened"),
+      "Not a Defect": cssToken("--status-closed"),
+      "Assigned Again": cssToken("--status-assigned"),
+      P1: cssToken("--sev-critical"),
+      P2: cssToken("--sev-high"),
+      P3: cssToken("--sev-medium"),
+      P4: cssToken("--sev-low")
     };
-    var neutralPalette = ["#23402a", "#2a4d32", "#7ea687", "#b5ccbb", "#5c1c1c", "#b83737", "#c65f5f", "#dc9b9b", "#262828", "#303635"];
+    var neutralPalette = [
+      cssToken("--status-closed"),
+      cssToken("--status-retest"),
+      cssToken("--status-in-progress"),
+      cssToken("--status-assigned"),
+      cssToken("--sev-critical"),
+      cssToken("--sev-high"),
+      cssToken("--sev-medium"),
+      cssToken("--sev-low"),
+      cssToken("--primary"),
+      cssToken("--muted")
+    ];
 
     if (window.Chart) {
-      Chart.defaults.font.family = '"Book Antiqua", Palatino, serif';
-      Chart.defaults.color = "#303635";
-      Chart.defaults.borderColor = "rgba(48, 54, 53, .18)";
+      Chart.defaults.font.family = cssToken("--font-sans");
+      Chart.defaults.color = cssToken("--muted");
+      Chart.defaults.borderColor = tokenMix("--primary", 18);
       if (window.ChartDataLabels && !Chart._dtDataLabelsRegistered) {
         Chart.register(window.ChartDataLabels);
         Chart.defaults.set("plugins.datalabels", { display: false });
@@ -1273,6 +1425,8 @@
     } catch (e) {
       showChartValues = false;
     }
+    var chartLabelOpacity = showChartValues ? 1 : 0;
+    var chartValuesAnimationFrame = null;
 
     function persistChartValuesPreference() {
       try {
@@ -1283,23 +1437,21 @@
     }
 
     function getDataLabelsConfig(type, isStacked, configType) {
-      if (!showChartValues) {
-        return { display: false };
-      }
       var base = {
         display: true,
         clamp: true,
         clip: false,
-        color: "#0e1010",
-        font: { weight: "700", size: 11 },
+        opacity: chartLabelOpacity,
+        color: cssToken("--text"),
+        font: { family: cssToken("--font-sans"), weight: "600", size: 11 },
         formatter: function (value) {
           return value === 0 || value == null ? "" : value;
         }
       };
       if (isRoundChart(type)) {
         return Object.assign({}, base, {
-          color: "#ffffff",
-          font: { weight: "700", size: 12 },
+          color: cssToken("--surface"),
+          font: { family: cssToken("--font-sans"), weight: "600", size: 12 },
           display: function (context) {
             var dataset = context.chart.data.datasets[0];
             var total = dataset.data.reduce(function (a, b) { return a + (b || 0); }, 0);
@@ -1311,7 +1463,7 @@
       }
       if (isStacked) {
         return Object.assign({}, base, {
-          color: "#ffffff",
+          color: cssToken("--surface"),
           anchor: "center",
           align: "center",
           display: function (context) {
@@ -1422,8 +1574,10 @@
         dragHandle.setAttribute("data-chart-drag-handle", "");
         dragHandle.setAttribute("aria-label", "Move chart");
         dragHandle.title = "Move chart";
-        dragHandle.textContent = "::";
+        dragHandle.innerHTML = uiIcons.grip;
         actions.insertBefore(dragHandle, actions.firstChild);
+      } else {
+        card.querySelector("[data-chart-drag-handle]").innerHTML = uiIcons.grip;
       }
 
       if (!card.querySelector("[data-remove-report-chart]")) {
@@ -1433,13 +1587,14 @@
         removeButton.setAttribute("data-remove-report-chart", "");
         removeButton.setAttribute("aria-label", "Remove chart");
         removeButton.title = "Remove chart";
-        removeButton.textContent = "x";
+        removeButton.innerHTML = uiIcons.close;
         actions.appendChild(removeButton);
       } else {
         var existingRemove = card.querySelector("[data-remove-report-chart]");
         existingRemove.classList.add("chart-remove-button");
         existingRemove.setAttribute("aria-label", "Remove chart");
         existingRemove.title = "Remove chart";
+        existingRemove.innerHTML = uiIcons.close;
       }
 
       if (!resizeHandle) {
@@ -1449,7 +1604,10 @@
         resizeHandle.setAttribute("data-resize-report-chart", "");
         resizeHandle.setAttribute("aria-label", "Resize chart");
         resizeHandle.title = "Drag to resize";
+        resizeHandle.innerHTML = uiIcons.resize;
         card.appendChild(resizeHandle);
+      } else {
+        resizeHandle.innerHTML = uiIcons.resize;
       }
 
       card.draggable = false;
@@ -1502,8 +1660,8 @@
         datasets = [{
           label: "Defects",
           data: values,
-          backgroundColor: type === "line" ? "rgba(126, 166, 135, .25)" : colorsFor(labels),
-          borderColor: type === "line" ? "#23402a" : colorsFor(labels),
+          backgroundColor: type === "line" ? tokenMix("--status-in-progress", 25) : colorsFor(labels),
+          borderColor: type === "line" ? cssToken("--status-in-progress") : colorsFor(labels),
           borderWidth: type === "line" ? 2 : 1,
           fill: type === "line",
           tension: .35
@@ -1540,20 +1698,21 @@
         scales = {};
       } else if (isStacked) {
         scales = {
-          x: { stacked: true, grid: { display: false }, ticks: { color: "#303635" } },
-          y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: "#303635" } }
+          x: { stacked: true, grid: { display: false }, ticks: { color: cssToken("--muted"), font: { family: cssToken("--font-sans"), size: 13, weight: "600" } } },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: cssToken("--muted"), font: { family: cssToken("--font-sans"), size: 13, weight: "600" } } }
         };
       } else {
         scales = {
-          x: { grid: { display: false }, ticks: { color: "#303635" } },
-          y: { beginAtZero: true, ticks: { precision: 0, color: "#303635" } }
+          x: { grid: { display: false }, ticks: { color: cssToken("--muted"), font: { family: cssToken("--font-sans"), size: 13, weight: "600" } } },
+          y: { beginAtZero: true, ticks: { precision: 0, color: cssToken("--muted"), font: { family: cssToken("--font-sans"), size: 13, weight: "600" } } }
         };
       }
-      if (showChartValues && !roundChart) {
+      if (!roundChart) {
+        var chartValueGrace = "15%";
         if (config.type === "horizontal") {
-          scales.x.grace = "10%";
+          scales.x.grace = chartValueGrace;
         } else {
-          scales.y.grace = "10%";
+          scales.y.grace = chartValueGrace;
         }
       }
 
@@ -1581,6 +1740,64 @@
       updateRestoreChartOptions();
     }
 
+    function easeChartValueMotion(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function applyChartValueMotion(chart, opacity) {
+      if (!chart || !chart.options) return;
+      if (chart.options.plugins && chart.options.plugins.datalabels) {
+        chart.options.plugins.datalabels.opacity = opacity;
+      }
+      chart.update("none");
+    }
+
+    function animateChartValueVisibility(nextVisible) {
+      var cancelAnimation = window.cancelAnimationFrame || window.clearTimeout;
+      var requestAnimation = window.requestAnimationFrame || function (callback) {
+        return window.setTimeout(function () { callback(Date.now()); }, 16);
+      };
+      if (chartValuesAnimationFrame) {
+        cancelAnimation(chartValuesAnimationFrame);
+      }
+      var start = chartLabelOpacity;
+      var end = nextVisible ? 1 : 0;
+      if (nextVisible) {
+        showChartValues = true;
+        persistChartValuesPreference();
+        applyChartValuesButtonState();
+        if (chartLabelOpacity <= 0) {
+          chartLabelOpacity = 0;
+          start = 0;
+        }
+      } else {
+        showChartValues = false;
+        persistChartValuesPreference();
+        applyChartValuesButtonState();
+      }
+      var startedAt = window.performance && window.performance.now ? window.performance.now() : Date.now();
+      var duration = 220;
+
+      function step(now) {
+        var elapsed = Math.min(1, (now - startedAt) / duration);
+        chartLabelOpacity = start + ((end - start) * easeChartValueMotion(elapsed));
+        Object.keys(reportChartInstances).forEach(function (key) {
+          applyChartValueMotion(reportChartInstances[key], chartLabelOpacity);
+        });
+        if (elapsed < 1) {
+          chartValuesAnimationFrame = requestAnimation(step);
+          return;
+        }
+        chartLabelOpacity = end;
+        chartValuesAnimationFrame = null;
+        Object.keys(reportChartInstances).forEach(function (key) {
+          applyChartValueMotion(reportChartInstances[key], chartLabelOpacity);
+        });
+      }
+
+      chartValuesAnimationFrame = requestAnimation(step);
+    }
+
     function getReportBadgeClass(value, field) {
       var key = String(value).toLowerCase().replace(/\s+/g, "-");
       if (field === "severity") return "badge-" + key;
@@ -1593,8 +1810,8 @@
           "retest": "badge-retest",
           "closed": "badge-closed",
           "reopened": "badge-reopened",
-          "developer-rejected": "badge-danger",
-          "not-a-defect": "badge-warning",
+          "developer-rejected": "badge-reopened",
+          "not-a-defect": "badge-closed",
           "assigned-again": "badge-assigned"
         };
         return statusClasses[key] || "badge-neutral";
@@ -1845,10 +2062,7 @@
     applyChartValuesButtonState();
     if (chartValuesToggleButton) {
       chartValuesToggleButton.addEventListener("click", function () {
-        showChartValues = !showChartValues;
-        persistChartValuesPreference();
-        applyChartValuesButtonState();
-        renderAllReportCharts(getFilteredReportRecords());
+        animateChartValueVisibility(!showChartValues);
       });
     }
     if (restoreReportChartSelect) {
@@ -3011,8 +3225,8 @@
         "retest": "badge-retest",
         "closed": "badge-closed",
         "reopened": "badge-reopened",
-        "developer-rejected": "badge-danger",
-        "not-a-defect": "badge-warning",
+        "developer-rejected": "badge-reopened",
+        "not-a-defect": "badge-closed",
         "assigned-again": "badge-assigned"
       };
       return statusClasses[key] || "badge-neutral";
